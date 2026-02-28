@@ -54,11 +54,11 @@ enum EnglishLevel: String, CaseIterable, Identifiable {
 
     var ageDescription: String {
         switch self {
-        case .level1: return "ネイティブ 3〜4歳相当"
-        case .level2: return "ネイティブ 6歳相当"
-        case .level3: return "ネイティブ 10歳相当"
-        case .level4: return "ネイティブ 15歳相当"
-        case .level5: return "ネイティブ 成人相当"
+        case .level1: return "英検4・5級 / TOEIC 300以下"
+        case .level2: return "英検3級 / TOEIC 300〜500"
+        case .level3: return "英検準2級・2級 / TOEIC 500〜650"
+        case .level4: return "英検準1級 / TOEIC 650〜800"
+        case .level5: return "英検1級 / TOEIC 800以上"
         }
     }
 
@@ -66,47 +66,47 @@ enum EnglishLevel: String, CaseIterable, Identifiable {
         switch self {
         case .level1:
             return """
-                Level 1 — Native English speaker age 3–4 equivalent.
-                Vocabulary: only the simplest, most common words a very young child would know (mommy, daddy, dog, cat, ball, big, little, eat, go, want, like, see, play, happy, good, more, here, yes, please).
-                Grammar: very short sentences, present simple only; "I want…" / "I like…" patterns; no complex clauses.
-                Structure: 5–8 words; single clause only.
-                AVOID: any word a 3-year-old would not know, past tense, modals, relative clauses, or multi-clause sentences.
-                Example style: "I like to play with my dog."
+                Level 1 — Eiken Grade 4–5 / TOEIC under 300 (A1 beginner).
+                Vocabulary: only the most basic everyday words (family, food, animals, colours, numbers, simple actions: go, eat, have, like, want, see, use, play).
+                Grammar: present simple tense only; "can" for ability is acceptable.
+                Structure: simple Subject + Verb + Object; one clause only; 6–10 words.
+                AVOID: past tense, future tense, modal verbs (except "can"), relative clauses, idioms, phrasal verbs, or any word a complete beginner would not know.
+                Example style: "I use a computer at school every day."
                 """
         case .level2:
             return """
-                Level 2 — Native English speaker age 6 equivalent.
-                Vocabulary: words a first-grader knows — school, family, animals, colours, numbers, simple actions, short adjectives (happy, funny, fast, big, small).
-                Grammar: simple past, present continuous, "will" for future; basic connectors (and, but, because, so).
-                Structure: 8–14 words; may have two short clauses.
-                AVOID: idioms, formal vocabulary, relative clauses, conditionals, passive voice.
-                Example style: "My cat jumped on the table and knocked over the glass."
+                Level 2 — Eiken Grade 3 / TOEIC 300–500 (A2 elementary).
+                Vocabulary: common everyday words plus simple topic words (school subjects, hobbies, weather, shopping, travel); short adjectives and adverbs.
+                Grammar: past simple, future (will / going to), present continuous; basic connectors (and, but, because, so, when).
+                Structure: compound sentences with two short clauses; 10–16 words.
+                AVOID: relative clauses, perfect tenses, passive voice, conditionals, idioms, or academic vocabulary.
+                Example style: "She studied hard because she wanted to pass the exam."
                 """
         case .level3:
             return """
-                Level 3 — Native English speaker age 10 equivalent.
-                Vocabulary: common words plus topic-specific words a 4th–5th grader encounters (experiment, environment, competition, surprised, population, communicate).
-                Grammar: past perfect, present perfect, relative clauses (who/which/that), modals (should, must, might), simple passive voice.
-                Structure: 14–22 words; compound or complex sentences with clear logical relationships.
-                AVOID: highly academic vocabulary, subjunctive mood, inversion, or sophisticated rhetorical devices.
-                Example style: "The scientist who discovered the new element said it could change the way we produce energy."
+                Level 3 — Eiken Grade Pre-2 to 2 / TOEIC 500–650 (B1–B2 intermediate).
+                Vocabulary: wider everyday and topic-specific vocabulary (environment, technology, health, society); include one or two words slightly above basic level.
+                Grammar: present perfect, past perfect, passive voice, relative clauses (who/which/that), second conditional (if + past + would), modals (should, must, might, could).
+                Structure: complex sentences with one or two subordinate clauses; 16–24 words.
+                AVOID: subjunctive mood, inversion, cleft sentences, or C-level academic/literary vocabulary.
+                Example style: "The report, which was released last month, has significantly changed the policies that many companies are now following."
                 """
         case .level4:
             return """
-                Level 4 — Native English speaker age 15 equivalent.
-                Vocabulary: high school level — academic and abstract words (analyse, significant, consequence, perspective, contribute, demonstrate, approach, establish).
-                Grammar: second/third conditionals, reported speech, passive in various tenses, participle phrases (having done, given that).
-                Structure: 20–30 words; sophisticated multi-clause sentences with clear logical flow.
-                AVOID: extremely advanced rhetorical devices such as inversion or subjunctive mood.
-                Example style: "If stricter environmental regulations had been implemented earlier, many of the ecological consequences we are now facing could have been prevented."
+                Level 4 — Eiken Grade Pre-1 / TOEIC 650–800 (B2–C1 upper-intermediate).
+                Vocabulary: academic and professional vocabulary (analyse, consequence, perspective, demonstrate, contribute, fundamental, facilitate, inevitable).
+                Grammar: third conditional, reported speech, passive in various tenses, participle phrases (having done…, given that…, compared with…), advanced modals.
+                Structure: sophisticated multi-clause sentences with clear logical and rhetorical flow; 22–32 words.
+                AVOID: inverted structures (Rarely has…), subjunctive (were it not for…), or highly literary vocabulary.
+                Example style: "Had the government introduced stricter regulations earlier, many of the environmental consequences that society is currently grappling with could have been avoided."
                 """
         case .level5:
             return """
-                Level 5 — Educated native adult speaker equivalent.
-                Vocabulary: sophisticated and precise — naturally use words such as "nuanced", "ephemeral", "juxtapose", "ostensibly", "precipitate", "reconcile", "ubiquitous", or equivalents appropriate to the target word's domain.
+                Level 5 — Eiken Grade 1 / TOEIC 800+ (C1–C2 advanced).
+                Vocabulary: sophisticated and precise — naturally use words such as "nuanced", "ephemeral", "juxtapose", "ostensibly", "precipitate", "reconcile", "ubiquitous", or equivalents suited to the target word's domain.
                 Grammar: subjunctive mood (were it not for…), inversion (Rarely has…, Not only did…, Had I known…), participle clauses (Having considered…, Confronted with…), cleft sentences (It is … that …).
                 Style: varied sentence rhythm and rhetorical elegance — quality journalism, academic writing, or literary non-fiction level.
-                AVOID: simple or predictable structures; every sentence must demonstrate clear adult-level linguistic sophistication.
+                AVOID: simple or predictable structures; every sentence must demonstrate clear C-level linguistic sophistication.
                 Example style: "Rarely has a single technological breakthrough so profoundly reshaped the way societies communicate as the advent of the internet did."
                 """
         }
