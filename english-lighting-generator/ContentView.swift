@@ -125,6 +125,7 @@ class AppViewModel {
     var japaneseResult: String = ""
     var isGenerating: Bool = false
     var errorMessage: String = ""
+    var isJapaneseVisible: Bool = false
 
     func generate() {
         Task { @MainActor in
@@ -132,14 +133,18 @@ class AppViewModel {
             errorMessage = ""
             englishResult = ""
             japaneseResult = ""
+            isJapaneseVisible = false
 
             let systemPrompt = """
                 You are an expert English educator creating example sentences for Japanese learners.
                 Your task is to produce ONE sentence at the correct difficulty level plus its Japanese translation.
 
-                IMPORTANT — Word input normalization:
-                The target word may be written in Japanese katakana or hiragana (e.g., "コンピュータ" → "computer", "ランゲージ" → "language"), or may contain spelling errors (e.g., "languagi" → "language", "tecnology" → "technology").
-                Always identify the correct English word the user intended and use that correctly spelled English word in the sentence.
+                CRITICAL REQUIREMENT — Target word/phrase usage:
+                The user will provide one or more target words or phrases (e.g., "technology", "would like", or "technology, would like").
+                - You MUST use ALL of the target words/phrases in the generated English sentence.
+                - If the input contains katakana, hiragana, or spelling errors, interpret the intended English word/phrase and use the correct form.
+                - If multiple words/phrases are provided (comma-separated), include ALL of them naturally in a single sentence.
+                - The target words/phrases must be used meaningfully, not artificially inserted.
 
                 Level: \(level.rawValue) (\(level.ageDescription))
                 Level requirements:
@@ -155,11 +160,12 @@ class AppViewModel {
                 """
 
             let userPrompt = """
-                Target word: "\(word)"
+                Target word(s)/phrase(s): "\(word)"
                 Level: \(level.rawValue) (\(level.ageDescription))
                 Sentence length: \(sentenceLength.rawValue)
 
-                Write the English sentence and its Japanese translation now.
+                Generate an English sentence that includes ALL of the target word(s)/phrase(s) above, along with its Japanese translation.
+                Remember: Every target word or phrase must appear in the sentence.
                 """
 
             let session = LanguageModelSession(instructions: systemPrompt)
@@ -256,11 +262,11 @@ struct MainView: View {
 
                         // Word field
                         VStack(alignment: .leading, spacing: 6) {
-                            Label("目標単語", systemImage: "character.cursor.ibeam")
-                                .font(.subheadline).fontWeight(.medium)
-                            TextField("例: technology", text: $viewModel.word)
+                            Text("文章生成ワード")
+                                .font(.subheadline).fontWeight(.bold)
+                            TextField("例: technology, would like", text: $viewModel.word)
                                 .textFieldStyle(.roundedBorder)
-                            Text("カタカナや綴りのミスはAIが自動補正します")
+                            Text("単語や熟語を入力してください（複数可：カンマ区切り）")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -269,8 +275,8 @@ struct MainView: View {
 
                         // Sentence length picker
                         VStack(alignment: .leading, spacing: 6) {
-                            Label("文章量", systemImage: "text.alignleft")
-                                .font(.subheadline).fontWeight(.medium)
+                            Text("文章量")
+                                .font(.subheadline).fontWeight(.bold)
                             Picker("文章量", selection: $viewModel.sentenceLength) {
                                 ForEach(SentenceLength.allCases) { length in
                                     Text(length.rawValue).tag(length)
@@ -284,8 +290,8 @@ struct MainView: View {
                         // Level picker
                         VStack(alignment: .leading, spacing: 6) {
                             HStack {
-                                Label("レベル", systemImage: "chart.bar.fill")
-                                    .font(.subheadline).fontWeight(.medium)
+                                Text("レベル")
+                                    .font(.subheadline).fontWeight(.bold)
                                 Spacer()
                                 Text(viewModel.level.ageDescription)
                                     .font(.caption)
@@ -300,9 +306,6 @@ struct MainView: View {
                         }
                     }
                     .padding(4)
-                } label: {
-                    Label("文章生成ワード", systemImage: "pencil.circle.fill")
-                        .font(.headline)
                 }
 
                 // ── Generate Button ──────────────────────────────────────
@@ -364,8 +367,26 @@ struct MainView: View {
                                 }
                             }
 
-                            // Japanese translation
+                            // Japanese translation toggle button
                             if !viewModel.japaneseResult.isEmpty {
+                                Button(action: {
+                                    withAnimation(.spring(duration: 0.35)) {
+                                        viewModel.isJapaneseVisible.toggle()
+                                    }
+                                }) {
+                                    HStack {
+                                        Image(systemName: viewModel.isJapaneseVisible ? "eye.slash.fill" : "eye.fill")
+                                        Text(viewModel.isJapaneseVisible ? "日本語訳を隠す" : "日本語訳を表示")
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 6)
+                                }
+                                .buttonStyle(.bordered)
+                                .controlSize(.regular)
+                            }
+
+                            // Japanese translation
+                            if !viewModel.japaneseResult.isEmpty && viewModel.isJapaneseVisible {
                                 VStack(alignment: .leading, spacing: 6) {
                                     Label("日本語訳", systemImage: "j.circle.fill")
                                         .font(.subheadline).fontWeight(.semibold)
@@ -380,6 +401,7 @@ struct MainView: View {
                                             in: RoundedRectangle(cornerRadius: 8)
                                         )
                                 }
+                                .transition(.opacity.combined(with: .move(edge: .top)))
                             }
                         }
                         .padding(4)
@@ -398,6 +420,7 @@ struct MainView: View {
             .padding()
             .animation(.spring(duration: 0.45), value: viewModel.englishResult)
             .animation(.spring(duration: 0.45), value: viewModel.japaneseResult)
+            .animation(.spring(duration: 0.35), value: viewModel.isJapaneseVisible)
             .animation(.easeInOut(duration: 0.25), value: viewModel.errorMessage)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
