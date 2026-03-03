@@ -1,0 +1,47 @@
+{
+  "app.name": "AI Viết Văn",
+
+  "unavailable.title": "Không Khả Dụng",
+  "unavailable.osRequired": "Yêu cầu macOS 26.0 trở lên",
+  "unavailable.aiUnavailable": "Apple Intelligence không khả dụng",
+
+  "input.wordLabel": "Từ",
+  "input.wordPlaceholder": "e.g. technology, would like",
+  "input.sentenceLengthLabel": "Độ dài",
+  "input.levelLabel": "Cấp độ",
+
+  "button.generating": "Đang tạo...",
+  "button.generate": "Tạo câu",
+  "button.hideJapanese": "Ẩn bản dịch",
+  "button.showJapanese": "Xem bản dịch",
+
+  "output.englishLabel": "English",
+  "output.japaneseLabel": "Bản dịch",
+  "output.title": "Kết quả",
+
+  "error.refusalDetail": "Chi tiết: ",
+
+  "sentenceLength.short": "Ngắn",
+  "sentenceLength.normal": "Bình thường",
+  "sentenceLength.long": "Dài",
+
+  "level.level1": "Lv.1",
+  "level.level2": "Lv.2",
+  "level.level3": "Lv.3",
+  "level.level4": "Lv.4",
+  "level.level5": "Lv.5",
+
+  "level.level1.description": "A1 / TOEIC 300-",
+  "level.level2.description": "A2 / TOEIC 300-500",
+  "level.level3.description": "B1-B2 / TOEIC 500-650",
+  "level.level4.description": "B2-C1 / TOEIC 650-800",
+  "level.level5.description": "C1-C2 / TOEIC 800+",
+
+  "tab.home": "Trang chủ",
+  "tab.settings": "Cài đặt",
+
+  "settings.appVersion": "Phiên bản",
+  "settings.review": "Đánh giá",
+  "settings.reviewApp": "Đánh giá app",
+  "settings.displayLanguage": "Ngôn ngữ"
+}

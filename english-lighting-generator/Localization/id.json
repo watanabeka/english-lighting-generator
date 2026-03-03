@@ -1,0 +1,47 @@
+{
+  "app.name": "AI Menulis",
+
+  "unavailable.title": "Tidak Tersedia",
+  "unavailable.osRequired": "Perlu macOS 26.0 atau lebih baru",
+  "unavailable.aiUnavailable": "Apple Intelligence tidak tersedia",
+
+  "input.wordLabel": "Kata",
+  "input.wordPlaceholder": "e.g. technology, would like",
+  "input.sentenceLengthLabel": "Panjang",
+  "input.levelLabel": "Level",
+
+  "button.generating": "Membuat...",
+  "button.generate": "Buat kalimat",
+  "button.hideJapanese": "Sembunyikan terjemahan",
+  "button.showJapanese": "Tampilkan terjemahan",
+
+  "output.englishLabel": "English",
+  "output.japaneseLabel": "Terjemahan",
+  "output.title": "Hasil",
+
+  "error.refusalDetail": "Detail: ",
+
+  "sentenceLength.short": "Pendek",
+  "sentenceLength.normal": "Normal",
+  "sentenceLength.long": "Panjang",
+
+  "level.level1": "Lv.1",
+  "level.level2": "Lv.2",
+  "level.level3": "Lv.3",
+  "level.level4": "Lv.4",
+  "level.level5": "Lv.5",
+
+  "level.level1.description": "A1 / TOEIC 300-",
+  "level.level2.description": "A2 / TOEIC 300-500",
+  "level.level3.description": "B1-B2 / TOEIC 500-650",
+  "level.level4.description": "B2-C1 / TOEIC 650-800",
+  "level.level5.description": "C1-C2 / TOEIC 800+",
+
+  "tab.home": "Beranda",
+  "tab.settings": "Pengaturan",
+
+  "settings.appVersion": "Versi",
+  "settings.review": "Ulasan",
+  "settings.reviewApp": "Beri ulasan",
+  "settings.displayLanguage": "Bahasa"
+}

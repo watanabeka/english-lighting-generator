@@ -8,7 +8,7 @@
 import SwiftUI
 import FoundationModels
 
-// MARK: - Generable Output
+// MARK: - AI Output Model
 
 @available(macOS 26.0, *)
 @Generable
@@ -23,20 +23,25 @@ struct SentenceOutput {
 // MARK: - Sentence Length
 
 enum SentenceLength: String, CaseIterable, Identifiable {
-    case short  = "少ない"
-    case normal = "普通"
-    case long   = "多い"
+    case short  = "sentenceLength.short"
+    case normal = "sentenceLength.normal"
+    case long   = "sentenceLength.long"
 
     var id: String { rawValue }
 
+    var englishName: String {
+        switch self {
+        case .short:  return "Short"
+        case .normal: return "Normal"
+        case .long:   return "Long"
+        }
+    }
+
     var instruction: String {
         switch self {
-        case .short:
-            return "Keep the sentence short and concise (approximately 8–12 words)."
-        case .normal:
-            return "Write a sentence of moderate length (approximately 18–25 words)."
-        case .long:
-            return "Write a longer, more detailed sentence (approximately 35–50 words)."
+        case .short:  return "Keep the sentence short and concise (approximately 8–12 words)."
+        case .normal: return "Write a sentence of moderate length (approximately 18–25 words)."
+        case .long:   return "Write a longer, more detailed sentence (approximately 35–50 words)."
         }
     }
 }
@@ -44,21 +49,33 @@ enum SentenceLength: String, CaseIterable, Identifiable {
 // MARK: - English Level
 
 enum EnglishLevel: String, CaseIterable, Identifiable {
-    case level1 = "レベル1"
-    case level2 = "レベル2"
-    case level3 = "レベル3"
-    case level4 = "レベル4"
-    case level5 = "レベル5"
+    case level1 = "level.level1"
+    case level2 = "level.level2"
+    case level3 = "level.level3"
+    case level4 = "level.level4"
+    case level5 = "level.level5"
 
     var id: String { rawValue }
 
-    var ageDescription: String {
+    var descriptionKey: String { "\(rawValue).description" }
+
+    var englishName: String {
         switch self {
-        case .level1: return "英検4・5級 / TOEIC 300以下"
-        case .level2: return "英検3級 / TOEIC 300〜500"
-        case .level3: return "英検準2級・2級 / TOEIC 500〜650"
-        case .level4: return "英検準1級 / TOEIC 650〜800"
-        case .level5: return "英検1級 / TOEIC 800以上"
+        case .level1: return "Level 1"
+        case .level2: return "Level 2"
+        case .level3: return "Level 3"
+        case .level4: return "Level 4"
+        case .level5: return "Level 5"
+        }
+    }
+
+    var englishDescription: String {
+        switch self {
+        case .level1: return "Eiken Grade 4-5 / TOEIC under 300 (A1)"
+        case .level2: return "Eiken Grade 3 / TOEIC 300-500 (A2)"
+        case .level3: return "Eiken Grade Pre-2 to 2 / TOEIC 500-650 (B1-B2)"
+        case .level4: return "Eiken Grade Pre-1 / TOEIC 650-800 (B2-C1)"
+        case .level5: return "Eiken Grade 1 / TOEIC 800+ (C1-C2)"
         }
     }
 
@@ -146,11 +163,11 @@ class AppViewModel {
                 - If multiple words/phrases are provided (comma-separated), include ALL of them naturally in a single sentence.
                 - The target words/phrases must be used meaningfully, not artificially inserted.
 
-                Level: \(level.rawValue) (\(level.ageDescription))
+                Level: \(level.englishName) (\(level.englishDescription))
                 Level requirements:
                 \(level.instruction)
 
-                Sentence length: \(sentenceLength.rawValue)
+                Sentence length: \(sentenceLength.englishName)
                 Length requirement: \(sentenceLength.instruction)
 
                 Quality rules:
@@ -161,8 +178,8 @@ class AppViewModel {
 
             let userPrompt = """
                 Target word(s)/phrase(s): "\(word)"
-                Level: \(level.rawValue) (\(level.ageDescription))
-                Sentence length: \(sentenceLength.rawValue)
+                Level: \(level.englishName) (\(level.englishDescription))
+                Sentence length: \(sentenceLength.englishName)
 
                 Generate an English sentence that includes ALL of the target word(s)/phrase(s) above, along with its Japanese translation.
                 Remember: Every target word or phrase must appear in the sentence.
@@ -180,11 +197,12 @@ class AppViewModel {
                     japaneseResult = response.content.japaneseTranslation
                 }
             } catch LanguageModelSession.GenerationError.refusal(let refusal, _) {
+                let L = LocalizationManager.shared
                 do {
                     let explanation = try await refusal.explanation
                     errorMessage = "[Refusal] \(explanation.content)"
                 } catch {
-                    errorMessage = "[Refusal] 詳細を取得できませんでした: \(error.localizedDescription)"
+                    errorMessage = "[Refusal] \(L["error.refusalDetail"])\(error.localizedDescription)"
                 }
             } catch {
                 errorMessage = error.localizedDescription
@@ -198,25 +216,35 @@ class AppViewModel {
 // MARK: - Root View
 
 struct ContentView: View {
+    @State private var L = LocalizationManager.shared
+
     var body: some View {
-        if #available(macOS 26.0, *) {
-            AvailabilityGateView()
-        } else {
-            UnavailableView(reason: "macOS 26.0 以降が必要です。")
+        TabView {
+            Tab(L["tab.home"], systemImage: "house.fill") {
+                if #available(macOS 26.0, *) {
+                    AvailabilityGateView()
+                } else {
+                    UnavailableView(reasonKey: "unavailable.osRequired")
+                }
+            }
+            Tab(L["tab.settings"], systemImage: "gearshape.fill") {
+                SettingsView()
+            }
         }
+        .environment(L)
     }
 }
 
-// MARK: - Availability Gate View
+// MARK: - Availability Gate
 
 @available(macOS 26.0, *)
 struct AvailabilityGateView: View {
     var body: some View {
         switch SystemLanguageModel.default.availability {
         case .available:
-            MainView()
+            GeneratorView()
         default:
-            UnavailableView(reason: "Apple Intelligence のオンデバイス言語モデルがこのデバイスまたはシステムで利用できません。")
+            UnavailableView(reasonKey: "unavailable.aiUnavailable")
         }
     }
 }
@@ -224,7 +252,8 @@ struct AvailabilityGateView: View {
 // MARK: - Unavailable View
 
 struct UnavailableView: View {
-    let reason: String
+    @Environment(LocalizationManager.self) private var L
+    let reasonKey: String
 
     var body: some View {
         VStack(spacing: 20) {
@@ -232,11 +261,11 @@ struct UnavailableView: View {
                 .font(.system(size: 56))
                 .foregroundStyle(.orange)
 
-            Text("Foundation Models を利用できません")
+            Text(L["unavailable.title"])
                 .font(.title2)
                 .fontWeight(.semibold)
 
-            Text(reason)
+            Text(L[reasonKey])
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
                 .font(.subheadline)
@@ -246,40 +275,32 @@ struct UnavailableView: View {
     }
 }
 
-// MARK: - Main View
+// MARK: - Generator View
 
 @available(macOS 26.0, *)
-struct MainView: View {
+struct GeneratorView: View {
+    @Environment(LocalizationManager.self) private var L
     @State private var viewModel = AppViewModel()
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
 
-                // ── Input Group ──────────────────────────────────────────
+                // ── Input Group ───────────────────────────────────────────
                 GroupBox {
                     VStack(alignment: .leading, spacing: 16) {
 
-                        // Word field
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("文章生成ワード")
-                                .font(.subheadline).fontWeight(.bold)
-                            TextField("例: technology, would like", text: $viewModel.word)
+                        FormSection(title: L["input.wordLabel"]) {
+                            TextField(L["input.wordPlaceholder"], text: $viewModel.word)
                                 .textFieldStyle(.roundedBorder)
-                            Text("単語や熟語を入力してください（複数可：カンマ区切り）")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
                         }
 
                         Divider()
 
-                        // Sentence length picker
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("文章量")
-                                .font(.subheadline).fontWeight(.bold)
-                            Picker("文章量", selection: $viewModel.sentenceLength) {
+                        FormSection(title: L["input.sentenceLengthLabel"]) {
+                            Picker(L["input.sentenceLengthLabel"], selection: $viewModel.sentenceLength) {
                                 ForEach(SentenceLength.allCases) { length in
-                                    Text(length.rawValue).tag(length)
+                                    Text(L[length.rawValue]).tag(length)
                                 }
                             }
                             .pickerStyle(.segmented)
@@ -287,19 +308,10 @@ struct MainView: View {
 
                         Divider()
 
-                        // Level picker
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack {
-                                Text("レベル")
-                                    .font(.subheadline).fontWeight(.bold)
-                                Spacer()
-                                Text(viewModel.level.ageDescription)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Picker("レベル", selection: $viewModel.level) {
+                        FormSection(title: L["input.levelLabel"], badge: L[viewModel.level.descriptionKey]) {
+                            Picker(L["input.levelLabel"], selection: $viewModel.level) {
                                 ForEach(EnglishLevel.allCases) { level in
-                                    Text(level.rawValue).tag(level)
+                                    Text(L[level.rawValue]).tag(level)
                                 }
                             }
                             .pickerStyle(.segmented)
@@ -308,15 +320,15 @@ struct MainView: View {
                     .padding(4)
                 }
 
-                // ── Generate Button ──────────────────────────────────────
+                // ── Generate Button ───────────────────────────────────────
                 Button(action: { viewModel.generate() }) {
                     HStack {
                         if viewModel.isGenerating {
                             ProgressView().controlSize(.small).padding(.trailing, 4)
-                            Text("生成中...")
+                            Text(L["button.generating"])
                         } else {
                             Image(systemName: "wand.and.sparkles")
-                            Text("英文を生成")
+                            Text(L["button.generate"])
                         }
                     }
                     .frame(maxWidth: .infinity)
@@ -329,7 +341,7 @@ struct MainView: View {
                     || viewModel.isGenerating
                 )
 
-                // ── Error Message ────────────────────────────────────────
+                // ── Error Message ─────────────────────────────────────────
                 if !viewModel.errorMessage.isEmpty {
                     HStack(alignment: .top, spacing: 8) {
                         Image(systemName: "exclamationmark.circle.fill")
@@ -344,30 +356,20 @@ struct MainView: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 }
 
-                // ── Output Group ─────────────────────────────────────────
+                // ── Output Group ──────────────────────────────────────────
                 if !viewModel.englishResult.isEmpty || !viewModel.japaneseResult.isEmpty {
                     GroupBox {
                         VStack(alignment: .leading, spacing: 16) {
 
-                            // English sentence
                             if !viewModel.englishResult.isEmpty {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Label("English", systemImage: "e.circle.fill")
-                                        .font(.subheadline).fontWeight(.semibold)
-                                        .foregroundStyle(.blue)
-                                    Text(viewModel.englishResult)
-                                        .font(.body)
-                                        .textSelection(.enabled)
-                                        .padding(12)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .background(
-                                            .blue.opacity(0.08),
-                                            in: RoundedRectangle(cornerRadius: 8)
-                                        )
-                                }
+                                ResultCard(
+                                    label: L["output.englishLabel"],
+                                    systemImage: "e.circle.fill",
+                                    color: .blue,
+                                    text: viewModel.englishResult
+                                )
                             }
 
-                            // Japanese translation toggle button
                             if !viewModel.japaneseResult.isEmpty {
                                 Button(action: {
                                     withAnimation(.spring(duration: 0.35)) {
@@ -376,7 +378,7 @@ struct MainView: View {
                                 }) {
                                     HStack {
                                         Image(systemName: viewModel.isJapaneseVisible ? "eye.slash.fill" : "eye.fill")
-                                        Text(viewModel.isJapaneseVisible ? "日本語訳を隠す" : "日本語訳を表示")
+                                        Text(L[viewModel.isJapaneseVisible ? "button.hideJapanese" : "button.showJapanese"])
                                     }
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 6)
@@ -385,28 +387,19 @@ struct MainView: View {
                                 .controlSize(.regular)
                             }
 
-                            // Japanese translation
                             if !viewModel.japaneseResult.isEmpty && viewModel.isJapaneseVisible {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Label("日本語訳", systemImage: "j.circle.fill")
-                                        .font(.subheadline).fontWeight(.semibold)
-                                        .foregroundStyle(.orange)
-                                    Text(viewModel.japaneseResult)
-                                        .font(.body)
-                                        .textSelection(.enabled)
-                                        .padding(12)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .background(
-                                            .orange.opacity(0.08),
-                                            in: RoundedRectangle(cornerRadius: 8)
-                                        )
-                                }
+                                ResultCard(
+                                    label: L["output.japaneseLabel"],
+                                    systemImage: "j.circle.fill",
+                                    color: .orange,
+                                    text: viewModel.japaneseResult
+                                )
                                 .transition(.opacity.combined(with: .move(edge: .top)))
                             }
                         }
                         .padding(4)
                     } label: {
-                        Label("出力", systemImage: "sparkles")
+                        Label(L["output.title"], systemImage: "sparkles")
                             .font(.headline)
                     }
                     .transition(
@@ -424,6 +417,53 @@ struct MainView: View {
             .animation(.easeInOut(duration: 0.25), value: viewModel.errorMessage)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - Common Subviews
+
+/// Labeled form section with an optional badge text (e.g. level description).
+struct FormSection<Content: View>: View {
+    let title: String
+    var badge: String? = nil
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(title)
+                    .font(.subheadline).fontWeight(.bold)
+                if let badge {
+                    Spacer()
+                    Text(badge)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            content()
+        }
+    }
+}
+
+/// Colored text result card used for English and Japanese output.
+struct ResultCard: View {
+    let label: String
+    let systemImage: String
+    let color: Color
+    let text: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label(label, systemImage: systemImage)
+                .font(.subheadline).fontWeight(.semibold)
+                .foregroundStyle(color)
+            Text(text)
+                .font(.body)
+                .textSelection(.enabled)
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(color.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+        }
     }
 }
 

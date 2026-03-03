@@ -1,0 +1,47 @@
+{
+  "app.name": "AI Rédaction",
+
+  "unavailable.title": "Non disponible",
+  "unavailable.osRequired": "Requiert macOS 26.0 ou ultérieur",
+  "unavailable.aiUnavailable": "Apple Intelligence non disponible",
+
+  "input.wordLabel": "Mot",
+  "input.wordPlaceholder": "e.g. technology, would like",
+  "input.sentenceLengthLabel": "Longueur",
+  "input.levelLabel": "Niveau",
+
+  "button.generating": "Génération...",
+  "button.generate": "Générer phrase",
+  "button.hideJapanese": "Masquer traduction",
+  "button.showJapanese": "Voir traduction",
+
+  "output.englishLabel": "English",
+  "output.japaneseLabel": "Traduction",
+  "output.title": "Résultat",
+
+  "error.refusalDetail": "Détails : ",
+
+  "sentenceLength.short": "Courte",
+  "sentenceLength.normal": "Normale",
+  "sentenceLength.long": "Longue",
+
+  "level.level1": "Lv.1",
+  "level.level2": "Lv.2",
+  "level.level3": "Lv.3",
+  "level.level4": "Lv.4",
+  "level.level5": "Lv.5",
+
+  "level.level1.description": "A1 / TOEIC 300-",
+  "level.level2.description": "A2 / TOEIC 300-500",
+  "level.level3.description": "B1-B2 / TOEIC 500-650",
+  "level.level4.description": "B2-C1 / TOEIC 650-800",
+  "level.level5.description": "C1-C2 / TOEIC 800+",
+
+  "tab.home": "Accueil",
+  "tab.settings": "Réglages",
+
+  "settings.appVersion": "Version",
+  "settings.review": "Avis",
+  "settings.reviewApp": "Évaluer l'app",
+  "settings.displayLanguage": "Langue"
+}
