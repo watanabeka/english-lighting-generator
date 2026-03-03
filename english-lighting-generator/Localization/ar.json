@@ -1,0 +1,47 @@
+{
+  "app.name": "AI إنجليزي",
+
+  "unavailable.title": "غير متاح",
+  "unavailable.osRequired": "يتطلب macOS 26.0 أو أحدث",
+  "unavailable.aiUnavailable": "Apple Intelligence غير متاح",
+
+  "input.wordLabel": "كلمة",
+  "input.wordPlaceholder": "e.g. technology, would like",
+  "input.sentenceLengthLabel": "الطول",
+  "input.levelLabel": "المستوى",
+
+  "button.generating": "جارٍ الإنشاء...",
+  "button.generate": "إنشاء جملة",
+  "button.hideJapanese": "إخفاء الترجمة",
+  "button.showJapanese": "عرض الترجمة",
+
+  "output.englishLabel": "English",
+  "output.japaneseLabel": "الترجمة",
+  "output.title": "النتيجة",
+
+  "error.refusalDetail": "التفاصيل: ",
+
+  "sentenceLength.short": "قصيرة",
+  "sentenceLength.normal": "متوسطة",
+  "sentenceLength.long": "طويلة",
+
+  "level.level1": "Lv.1",
+  "level.level2": "Lv.2",
+  "level.level3": "Lv.3",
+  "level.level4": "Lv.4",
+  "level.level5": "Lv.5",
+
+  "level.level1.description": "A1 / TOEIC 300-",
+  "level.level2.description": "A2 / TOEIC 300-500",
+  "level.level3.description": "B1-B2 / TOEIC 500-650",
+  "level.level4.description": "B2-C1 / TOEIC 650-800",
+  "level.level5.description": "C1-C2 / TOEIC 800+",
+
+  "tab.home": "الرئيسية",
+  "tab.settings": "الإعدادات",
+
+  "settings.appVersion": "الإصدار",
+  "settings.review": "تقييم",
+  "settings.reviewApp": "قيّم التطبيق",
+  "settings.displayLanguage": "اللغة"
+}

@@ -1,0 +1,47 @@
+{
+  "app.name": "AI英作文",
+
+  "unavailable.title": "利用不可",
+  "unavailable.osRequired": "macOS 26.0 以降が必要です",
+  "unavailable.aiUnavailable": "Apple Intelligence が利用できません",
+
+  "input.wordLabel": "ワード",
+  "input.wordPlaceholder": "e.g. technology, would like",
+  "input.sentenceLengthLabel": "文章量",
+  "input.levelLabel": "レベル",
+
+  "button.generating": "生成中...",
+  "button.generate": "英文を生成",
+  "button.hideJapanese": "和訳を隠す",
+  "button.showJapanese": "和訳を表示",
+
+  "output.englishLabel": "English",
+  "output.japaneseLabel": "和訳",
+  "output.title": "出力",
+
+  "error.refusalDetail": "詳細: ",
+
+  "sentenceLength.short": "少ない",
+  "sentenceLength.normal": "普通",
+  "sentenceLength.long": "多い",
+
+  "level.level1": "Lv.1",
+  "level.level2": "Lv.2",
+  "level.level3": "Lv.3",
+  "level.level4": "Lv.4",
+  "level.level5": "Lv.5",
+
+  "level.level1.description": "英検4・5級 / TOEIC 300-",
+  "level.level2.description": "英検3級 / TOEIC 300-500",
+  "level.level3.description": "英検準2-2級 / TOEIC 500-650",
+  "level.level4.description": "英検準1級 / TOEIC 650-800",
+  "level.level5.description": "英検1級 / TOEIC 800+",
+
+  "tab.home": "ホーム",
+  "tab.settings": "設定",
+
+  "settings.appVersion": "バージョン",
+  "settings.review": "レビュー",
+  "settings.reviewApp": "レビューを書く",
+  "settings.displayLanguage": "表示言語"
+}
