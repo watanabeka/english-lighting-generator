@@ -19,37 +19,45 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                // App Version
-                Section(L["settings.appVersion"]) {
-                    LabeledContent(L["settings.appVersion"], value: appVersion)
-                }
+                appVersionSection
+                reviewSection
+                languageSection
+            }
+            .navigationTitle(L["tab.settings"])
+        }
+    }
 
-                // Review
-                Section(L["settings.review"]) {
-                    Button(L["settings.reviewApp"]) {
-                        // Opens App Store review dialog
-                    }
-                }
+    private var appVersionSection: some View {
+        Section(L["settings.appVersion"]) {
+            LabeledContent(L["settings.appVersion"], value: appVersion)
+        }
+    }
 
-                // Display Language
-                Section(L["settings.displayLanguage"]) {
-                    ForEach(SupportedLanguage.all) { language in
-                        HStack {
-                            Text(language.displayName)
-                            Spacer()
-                            if L.currentLanguage.id == language.id {
-                                Image(systemName: "checkmark")
-                                    .foregroundStyle(.accentColor)
-                            }
-                        }
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            L.setLanguage(language)
+    private var reviewSection: some View {
+        Section(L["settings.review"]) {
+            Button(L["settings.reviewApp"]) {
+                // Opens App Store review dialog
+            }
+        }
+    }
+
+    private var languageSection: some View {
+        Section(L["settings.displayLanguage"]) {
+            ForEach(SupportedLanguage.all) { (language: SupportedLanguage) in
+                Button(action: {
+                    L.setLanguage(language)
+                }) {
+                    HStack {
+                        Text(language.displayName)
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        if L.currentLanguage.id == language.id {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.tint)
                         }
                     }
                 }
             }
-            .navigationTitle(L["tab.settings"])
         }
     }
 }
