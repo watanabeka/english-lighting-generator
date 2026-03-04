@@ -37,8 +37,20 @@
   "level.level4.description": "B2-C1 / TOEIC 650-800",
   "level.level5.description": "C1-C2 / TOEIC 800+",
 
-  "tab.home": "Trang chủ",
+  "tab.aiSentence": "Câu AI",
+  "tab.history": "Lịch sử",
+  "tab.quiz": "Quiz AI",
   "tab.settings": "Cài đặt",
+
+  "history.empty": "Chưa có lịch sử",
+  "history.emptyDetail": "Tạo câu trong tab Câu AI và lịch sử sẽ hiển thị ở đây.",
+  "history.generateButton": "Tạo trong Câu AI",
+
+  "quiz.generateButton": "Tạo quiz",
+  "quiz.prompt": "Sẵn sàng làm quiz",
+  "quiz.promptDetail": "Nhấn \"Tạo quiz\" để tạo câu hỏi trắc nghiệm dựa trên từ vựng của bạn.",
+  "quiz.questionLabel": "Câu hỏi",
+  "quiz.explanationLabel": "Giải thích",
 
   "settings.appVersion": "Phiên bản",
   "settings.review": "Đánh giá",

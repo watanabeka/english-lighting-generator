@@ -37,8 +37,20 @@
   "level.level4.description": "英検準1級 / TOEIC 650-800",
   "level.level5.description": "英検1級 / TOEIC 800+",
 
-  "tab.home": "ホーム",
+  "tab.aiSentence": "AI英作文",
+  "tab.history": "履歴",
+  "tab.quiz": "AI問題",
   "tab.settings": "設定",
+
+  "history.empty": "履歴なし",
+  "history.emptyDetail": "AI英作文タブで単語を入力して生成すると、ここに履歴が表示されます。",
+  "history.generateButton": "AI英作文タブで生成",
+
+  "quiz.generateButton": "問題を生成",
+  "quiz.prompt": "問題を生成してください",
+  "quiz.promptDetail": "「問題を生成」ボタンを押すと、履歴の単語をもとに4択問題が生成されます。",
+  "quiz.questionLabel": "問題",
+  "quiz.explanationLabel": "解説",
 
   "settings.appVersion": "バージョン",
   "settings.review": "レビュー",

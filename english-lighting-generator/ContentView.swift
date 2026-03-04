@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 import FoundationModels
 
 // MARK: - AI Output Model
@@ -18,6 +19,9 @@ struct SentenceOutput {
 
     @Guide(description: "A natural, fluent Japanese translation (自然な日本語). Do NOT translate word-for-word. Use Japanese expressions that convey the same meaning naturally and match the register (casual or formal) of the English sentence.")
     var japaneseTranslation: String
+
+    @Guide(description: "The normalised English form of the input word or phrase. If the input was katakana, hiragana, romaji, or another language, write the correct English equivalent here. If the input was already correct English, repeat it unchanged.")
+    var normalisedEnglishWord: String
 }
 
 // MARK: - Sentence Length
@@ -144,7 +148,7 @@ class AppViewModel {
     var errorMessage: String = ""
     var isJapaneseVisible: Bool = false
 
-    func generate() {
+    func generate(modelContext: ModelContext) {
         Task { @MainActor in
             isGenerating = true
             errorMessage = ""
@@ -174,6 +178,7 @@ class AppViewModel {
                 - The English sentence must sound completely natural — as if a native speaker of the appropriate age group wrote it.
                 - Strictly follow the vocabulary and grammar constraints for the level. The sentence should feel noticeably different from other levels.
                 - The Japanese translation must be natural, fluent Japanese (自然な日本語). Avoid word-for-word translation. Express the meaning using idiomatic Japanese. Match the register of the English (casual or formal).
+                - normalisedEnglishWord: return the correct English form of the user's input. If the input was katakana/hiragana/romaji or another language, convert to English. If already English, repeat it unchanged.
                 """
 
             let userPrompt = """
@@ -183,6 +188,7 @@ class AppViewModel {
 
                 Generate an English sentence that includes ALL of the target word(s)/phrase(s) above, along with its Japanese translation.
                 Remember: Every target word or phrase must appear in the sentence.
+                Also provide normalisedEnglishWord: the English normalisation of the input.
                 """
 
             let session = LanguageModelSession(instructions: systemPrompt)
@@ -192,10 +198,39 @@ class AppViewModel {
                     to: userPrompt,
                     generating: SentenceOutput.self
                 )
+                let content = response.content
                 withAnimation(.spring(duration: 0.5)) {
-                    englishResult = response.content.englishSentence
-                    japaneseResult = response.content.japaneseTranslation
+                    englishResult = content.englishSentence
+                    japaneseResult = content.japaneseTranslation
                 }
+
+                // ── Save to History ─────────────────────────────────────
+                let today = String.todayDateKey
+                let normWord = content.normalisedEnglishWord.trimmingCharacters(in: .whitespacesAndNewlines)
+                let wordToSave = normWord.isEmpty ? word : normWord
+
+                // Check if the same word was already used today
+                let descriptor = FetchDescriptor<WordHistoryItem>(
+                    predicate: #Predicate { $0.date == today && $0.englishWord == wordToSave }
+                )
+                if let existing = try? modelContext.fetch(descriptor).first {
+                    existing.generationCount += 1
+                } else {
+                    let item = WordHistoryItem(date: today, englishWord: wordToSave)
+                    modelContext.insert(item)
+                }
+
+                // ── Update Usage Record ─────────────────────────────────
+                let usageDescriptor = FetchDescriptor<UsageRecord>(
+                    predicate: #Predicate { $0.date == today }
+                )
+                if let record = try? modelContext.fetch(usageDescriptor).first {
+                    record.aiSentenceCount += 1
+                } else {
+                    let record = UsageRecord(date: today, aiSentenceCount: 1, aiQuizCount: 0)
+                    modelContext.insert(record)
+                }
+
             } catch LanguageModelSession.GenerationError.refusal(let refusal, _) {
                 let L = LocalizationManager.shared
                 do {
@@ -217,17 +252,36 @@ class AppViewModel {
 
 struct ContentView: View {
     @State private var L = LocalizationManager.shared
+    // Tab selection shared between tabs (History → AI Sentence prefill)
+    @State private var selectedTab: Int = 0
+    @State private var prefillWord: String = ""
 
     var body: some View {
-        TabView {
-            Tab(L["tab.home"], systemImage: "house.fill") {
+        TabView(selection: $selectedTab) {
+            // Tab 0: AI Sentence
+            Tab(L["tab.aiSentence"], systemImage: "pencil.and.sparkles", value: 0) {
                 if #available(macOS 26.0, *) {
-                    AvailabilityGateView()
+                    AvailabilityGateView(prefillWord: $prefillWord)
                 } else {
                     UnavailableView(reasonKey: "unavailable.osRequired")
                 }
             }
-            Tab(L["tab.settings"], systemImage: "gearshape.fill") {
+
+            // Tab 1: History
+            Tab(L["tab.history"], systemImage: "clock.fill", value: 1) {
+                HistoryView(onSelectWord: { word in
+                    prefillWord = word
+                    selectedTab = 0
+                })
+            }
+
+            // Tab 2: AI Quiz
+            Tab(L["tab.quiz"], systemImage: "questionmark.bubble.fill", value: 2) {
+                QuizView()
+            }
+
+            // Tab 3: Settings
+            Tab(L["tab.settings"], systemImage: "gearshape.fill", value: 3) {
                 SettingsView()
             }
         }
@@ -239,10 +293,12 @@ struct ContentView: View {
 
 @available(macOS 26.0, *)
 struct AvailabilityGateView: View {
+    @Binding var prefillWord: String
+
     var body: some View {
         switch SystemLanguageModel.default.availability {
         case .available:
-            GeneratorView()
+            GeneratorView(prefillWord: $prefillWord)
         default:
             UnavailableView(reasonKey: "unavailable.aiUnavailable")
         }
@@ -280,143 +336,155 @@ struct UnavailableView: View {
 @available(macOS 26.0, *)
 struct GeneratorView: View {
     @Environment(LocalizationManager.self) private var L
+    @Environment(\.modelContext) private var modelContext
     @State private var viewModel = AppViewModel()
+    @Binding var prefillWord: String
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
 
-                // ── Input Group ───────────────────────────────────────────
-                GroupBox {
-                    VStack(alignment: .leading, spacing: 16) {
-
-                        FormSection(title: L["input.wordLabel"]) {
-                            TextField(L["input.wordPlaceholder"], text: $viewModel.word)
-                                .textFieldStyle(.roundedBorder)
-                        }
-
-                        Divider()
-
-                        FormSection(title: L["input.sentenceLengthLabel"]) {
-                            Picker(L["input.sentenceLengthLabel"], selection: $viewModel.sentenceLength) {
-                                ForEach(SentenceLength.allCases) { length in
-                                    Text(L[length.rawValue]).tag(length)
-                                }
-                            }
-                            .pickerStyle(.segmented)
-                        }
-
-                        Divider()
-
-                        FormSection(title: L["input.levelLabel"], badge: L[viewModel.level.descriptionKey]) {
-                            Picker(L["input.levelLabel"], selection: $viewModel.level) {
-                                ForEach(EnglishLevel.allCases) { level in
-                                    Text(L[level.rawValue]).tag(level)
-                                }
-                            }
-                            .pickerStyle(.segmented)
-                        }
-                    }
-                    .padding(4)
-                }
-
-                // ── Generate Button ───────────────────────────────────────
-                Button(action: { viewModel.generate() }) {
-                    HStack {
-                        if viewModel.isGenerating {
-                            ProgressView().controlSize(.small).padding(.trailing, 4)
-                            Text(L["button.generating"])
-                        } else {
-                            Image(systemName: "wand.and.sparkles")
-                            Text(L["button.generate"])
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 4)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .disabled(
-                    viewModel.word.trimmingCharacters(in: .whitespaces).isEmpty
-                    || viewModel.isGenerating
-                )
-
-                // ── Error Message ─────────────────────────────────────────
-                if !viewModel.errorMessage.isEmpty {
-                    HStack(alignment: .top, spacing: 8) {
-                        Image(systemName: "exclamationmark.circle.fill")
-                            .foregroundStyle(.red)
-                        Text(viewModel.errorMessage)
-                            .font(.subheadline)
-                            .foregroundStyle(.red)
-                    }
-                    .padding(12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.red.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-                }
-
-                // ── Output Group ──────────────────────────────────────────
-                if !viewModel.englishResult.isEmpty || !viewModel.japaneseResult.isEmpty {
+                    // ── Input Group ───────────────────────────────────────────
                     GroupBox {
                         VStack(alignment: .leading, spacing: 16) {
 
-                            if !viewModel.englishResult.isEmpty {
-                                ResultCard(
-                                    label: L["output.englishLabel"],
-                                    systemImage: "e.circle.fill",
-                                    color: .blue,
-                                    text: viewModel.englishResult
-                                )
+                            FormSection(title: L["input.wordLabel"]) {
+                                TextField(L["input.wordPlaceholder"], text: $viewModel.word)
+                                    .textFieldStyle(.roundedBorder)
                             }
 
-                            if !viewModel.japaneseResult.isEmpty {
-                                Button(action: {
-                                    withAnimation(.spring(duration: 0.35)) {
-                                        viewModel.isJapaneseVisible.toggle()
+                            Divider()
+
+                            FormSection(title: L["input.sentenceLengthLabel"]) {
+                                Picker(L["input.sentenceLengthLabel"], selection: $viewModel.sentenceLength) {
+                                    ForEach(SentenceLength.allCases) { length in
+                                        Text(L[length.rawValue]).tag(length)
                                     }
-                                }) {
-                                    HStack {
-                                        Image(systemName: viewModel.isJapaneseVisible ? "eye.slash.fill" : "eye.fill")
-                                        Text(L[viewModel.isJapaneseVisible ? "button.hideJapanese" : "button.showJapanese"])
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 6)
                                 }
-                                .buttonStyle(.bordered)
-                                .controlSize(.regular)
+                                .pickerStyle(.segmented)
                             }
 
-                            if !viewModel.japaneseResult.isEmpty && viewModel.isJapaneseVisible {
-                                ResultCard(
-                                    label: L["output.japaneseLabel"],
-                                    systemImage: "j.circle.fill",
-                                    color: .orange,
-                                    text: viewModel.japaneseResult
-                                )
-                                .transition(.opacity.combined(with: .move(edge: .top)))
+                            Divider()
+
+                            FormSection(title: L["input.levelLabel"], badge: L[viewModel.level.descriptionKey]) {
+                                Picker(L["input.levelLabel"], selection: $viewModel.level) {
+                                    ForEach(EnglishLevel.allCases) { level in
+                                        Text(L[level.rawValue]).tag(level)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
                             }
                         }
                         .padding(4)
-                    } label: {
-                        Label(L["output.title"], systemImage: "sparkles")
-                            .font(.headline)
                     }
-                    .transition(
-                        .asymmetric(
-                            insertion: .opacity.combined(with: .move(edge: .bottom)),
-                            removal: .opacity
-                        )
+
+                    // ── Generate Button ───────────────────────────────────────
+                    Button(action: { viewModel.generate(modelContext: modelContext) }) {
+                        HStack {
+                            if viewModel.isGenerating {
+                                ProgressView().controlSize(.small).padding(.trailing, 4)
+                                Text(L["button.generating"])
+                            } else {
+                                Image(systemName: "wand.and.sparkles")
+                                Text(L["button.generate"])
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .disabled(
+                        viewModel.word.trimmingCharacters(in: .whitespaces).isEmpty
+                        || viewModel.isGenerating
                     )
+
+                    // ── Error Message ─────────────────────────────────────────
+                    if !viewModel.errorMessage.isEmpty {
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "exclamationmark.circle.fill")
+                                .foregroundStyle(.red)
+                            Text(viewModel.errorMessage)
+                                .font(.subheadline)
+                                .foregroundStyle(.red)
+                        }
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(.red.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+
+                    // ── Output Group ──────────────────────────────────────────
+                    if !viewModel.englishResult.isEmpty || !viewModel.japaneseResult.isEmpty {
+                        GroupBox {
+                            VStack(alignment: .leading, spacing: 16) {
+
+                                if !viewModel.englishResult.isEmpty {
+                                    ResultCard(
+                                        label: L["output.englishLabel"],
+                                        systemImage: "e.circle.fill",
+                                        color: .blue,
+                                        text: viewModel.englishResult
+                                    )
+                                }
+
+                                if !viewModel.japaneseResult.isEmpty {
+                                    Button(action: {
+                                        withAnimation(.spring(duration: 0.35)) {
+                                            viewModel.isJapaneseVisible.toggle()
+                                        }
+                                    }) {
+                                        HStack {
+                                            Image(systemName: viewModel.isJapaneseVisible ? "eye.slash.fill" : "eye.fill")
+                                            Text(L[viewModel.isJapaneseVisible ? "button.hideJapanese" : "button.showJapanese"])
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 6)
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .controlSize(.regular)
+                                }
+
+                                if !viewModel.japaneseResult.isEmpty && viewModel.isJapaneseVisible {
+                                    ResultCard(
+                                        label: L["output.japaneseLabel"],
+                                        systemImage: "j.circle.fill",
+                                        color: .orange,
+                                        text: viewModel.japaneseResult
+                                    )
+                                    .transition(.opacity.combined(with: .move(edge: .top)))
+                                }
+                            }
+                            .padding(4)
+                        } label: {
+                            Label(L["output.title"], systemImage: "sparkles")
+                                .font(.headline)
+                        }
+                        .transition(
+                            .asymmetric(
+                                insertion: .opacity.combined(with: .move(edge: .bottom)),
+                                removal: .opacity
+                            )
+                        )
+                    }
                 }
+                .padding()
+                .animation(.spring(duration: 0.45), value: viewModel.englishResult)
+                .animation(.spring(duration: 0.45), value: viewModel.japaneseResult)
+                .animation(.spring(duration: 0.35), value: viewModel.isJapaneseVisible)
+                .animation(.easeInOut(duration: 0.25), value: viewModel.errorMessage)
             }
-            .padding()
-            .animation(.spring(duration: 0.45), value: viewModel.englishResult)
-            .animation(.spring(duration: 0.45), value: viewModel.japaneseResult)
-            .animation(.spring(duration: 0.35), value: viewModel.isJapaneseVisible)
-            .animation(.easeInOut(duration: 0.25), value: viewModel.errorMessage)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .navigationTitle(L["tab.aiSentence"])
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // When History tab sends a word, pre-fill the text field
+        .onChange(of: prefillWord) { _, newWord in
+            if !newWord.isEmpty {
+                viewModel.word = newWord
+                prefillWord = ""
+            }
+        }
     }
 }
 
@@ -471,4 +539,5 @@ struct ResultCard: View {
 
 #Preview {
     ContentView()
+        .modelContainer(for: [WordHistoryItem.self, UsageRecord.self], inMemory: true)
 }

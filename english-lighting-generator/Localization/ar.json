@@ -37,8 +37,20 @@
   "level.level4.description": "B2-C1 / TOEIC 650-800",
   "level.level5.description": "C1-C2 / TOEIC 800+",
 
-  "tab.home": "الرئيسية",
+  "tab.aiSentence": "جمل AI",
+  "tab.history": "السجل",
+  "tab.quiz": "اختبار AI",
   "tab.settings": "الإعدادات",
+
+  "history.empty": "لا يوجد سجل",
+  "history.emptyDetail": "أنشئ جملاً في تبويب جمل AI وسيظهر السجل هنا.",
+  "history.generateButton": "إنشاء في جمل AI",
+
+  "quiz.generateButton": "إنشاء اختبار",
+  "quiz.prompt": "جاهز للاختبار",
+  "quiz.promptDetail": "اضغط \"إنشاء اختبار\" لإنشاء سؤال اختيار من متعدد بناءً على مفرداتك.",
+  "quiz.questionLabel": "السؤال",
+  "quiz.explanationLabel": "الشرح",
 
   "settings.appVersion": "الإصدار",
   "settings.review": "تقييم",

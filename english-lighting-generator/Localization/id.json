@@ -37,8 +37,20 @@
   "level.level4.description": "B2-C1 / TOEIC 650-800",
   "level.level5.description": "C1-C2 / TOEIC 800+",
 
-  "tab.home": "Beranda",
+  "tab.aiSentence": "Kalimat AI",
+  "tab.history": "Riwayat",
+  "tab.quiz": "Kuis AI",
   "tab.settings": "Pengaturan",
+
+  "history.empty": "Belum ada riwayat",
+  "history.emptyDetail": "Buat kalimat di tab Kalimat AI dan riwayat akan muncul di sini.",
+  "history.generateButton": "Buat di Kalimat AI",
+
+  "quiz.generateButton": "Buat kuis",
+  "quiz.prompt": "Siap untuk kuis",
+  "quiz.promptDetail": "Ketuk \"Buat kuis\" untuk membuat soal pilihan ganda berdasarkan kosakata Anda.",
+  "quiz.questionLabel": "Soal",
+  "quiz.explanationLabel": "Penjelasan",
 
   "settings.appVersion": "Versi",
   "settings.review": "Ulasan",

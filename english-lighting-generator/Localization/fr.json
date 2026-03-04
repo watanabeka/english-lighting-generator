@@ -37,8 +37,20 @@
   "level.level4.description": "B2-C1 / TOEIC 650-800",
   "level.level5.description": "C1-C2 / TOEIC 800+",
 
-  "tab.home": "Accueil",
+  "tab.aiSentence": "Phrases AI",
+  "tab.history": "Historique",
+  "tab.quiz": "Quiz AI",
   "tab.settings": "Réglages",
+
+  "history.empty": "Aucun historique",
+  "history.emptyDetail": "Générez des phrases dans Phrases AI et l'historique apparaîtra ici.",
+  "history.generateButton": "Générer dans Phrases AI",
+
+  "quiz.generateButton": "Générer un quiz",
+  "quiz.prompt": "Prêt pour le quiz",
+  "quiz.promptDetail": "Appuyez sur \"Générer un quiz\" pour créer un QCM basé sur votre vocabulaire.",
+  "quiz.questionLabel": "Question",
+  "quiz.explanationLabel": "Explication",
 
   "settings.appVersion": "Version",
   "settings.review": "Avis",

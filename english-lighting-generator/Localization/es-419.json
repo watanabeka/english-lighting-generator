@@ -37,8 +37,20 @@
   "level.level4.description": "B2-C1 / TOEIC 650-800",
   "level.level5.description": "C1-C2 / TOEIC 800+",
 
-  "tab.home": "Inicio",
+  "tab.aiSentence": "Frases AI",
+  "tab.history": "Historial",
+  "tab.quiz": "Quiz AI",
   "tab.settings": "Ajustes",
+
+  "history.empty": "Sin historial",
+  "history.emptyDetail": "Genera frases en Frases AI y el historial aparecerá aquí.",
+  "history.generateButton": "Generar en Frases AI",
+
+  "quiz.generateButton": "Generar quiz",
+  "quiz.prompt": "Listo para el quiz",
+  "quiz.promptDetail": "Toca \"Generar quiz\" para crear una pregunta de opción múltiple.",
+  "quiz.questionLabel": "Pregunta",
+  "quiz.explanationLabel": "Explicación",
 
   "settings.appVersion": "Versión",
   "settings.review": "Reseña",
