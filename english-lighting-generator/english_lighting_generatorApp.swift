@@ -18,12 +18,13 @@ struct english_lighting_generatorApp: App {
     //
     //   1. Sign in to an Apple Developer account in Xcode → Signing & Capabilities.
     //   2. Add capability: "iCloud" → check "CloudKit".
-    //   3. Add capability: "Background Modes" → check "Remote notifications".
-    //   4. Create (or select) a CloudKit container named
+    //   3. Create (or select) a CloudKit container named
     //      "iCloud.com.yourteam.english-lighting-generator" (match your bundle ID).
-    //   5. Set the container identifier in the modelContainer call below to match.
-    //   6. Ensure the app's entitlement file includes the container ID under
+    //   4. Ensure the app's entitlement file includes the container ID under
     //      com.apple.developer.icloud-container-identifiers.
+    //
+    // Note: "Background Modes → Remote notifications" is NOT required.
+    // Sync happens when the app is in the foreground, which is sufficient.
     //
     // Until those steps are done the app compiles and runs using a local-only
     // SwiftData store (no crash — CloudKit simply won't sync).
