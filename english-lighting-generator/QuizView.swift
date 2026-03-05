@@ -17,23 +17,29 @@ struct QuizOutput {
     @Guide(description: "The English word or phrase being tested. Should come from or relate to the user's word history.")
     var targetWord: String
 
-    @Guide(description: "A fill-in-the-blank sentence where the target word is replaced by ___. The blank should fit naturally in context.")
+    @Guide(description: "Part of speech of the correct answer. Use exactly one of: noun, verb, adjective, adverb.")
+    var answerPos: String
+
+    @Guide(description: "Semantic meaning category of the correct answer. A single lowercase English noun describing the word's meaning domain, e.g. collaboration, emotion, movement, technology, finance, nature.")
+    var answerCategory: String
+
+    @Guide(description: "The general topic/domain of this question (e.g., 'workplace', 'travel', 'food', 'technology', 'daily life', 'sports', 'nature', 'relationships', 'education', 'health'). Must be varied across questions.")
+    var topic: String
+
+    @Guide(description: "A fill-in-the-blank sentence where the target word is replaced by ___. The blank must require a word of the same part of speech as answerPos.")
     var questionSentence: String
 
     @Guide(description: "The correct answer: the exact target word or phrase that fills the blank.")
     var correctAnswer: String
 
-    @Guide(description: "Three plausible but incorrect answer options in the same language register. Each must be clearly wrong but tempting.")
+    @Guide(description: "Exactly 3 wrong answer options. All must share the same part of speech as answerPos. No duplicates. The correct answer must not appear here.")
     var wrongAnswers: [String]
 
-    @Guide(description: "A brief explanation (1-2 sentences) of why the correct answer is right. Mention meaning or usage.")
+    @Guide(description: "One reason label per wrong answer, in the same order as wrongAnswers. Each label must be exactly one of: pos_mismatch, register_mismatch, collocation_mismatch, meaning_mismatch. All three labels must be different from each other.")
+    var distractorReasons: [String]
+
+    @Guide(description: "A brief explanation (1-2 sentences) of why the correct answer is right and why each wrong answer fails.")
     var explanation: String
-    
-    @Guide(description: "The part of speech of the target word in this context (e.g., 'adjective', 'noun', 'verb', 'adverb').")
-    var partOfSpeech: String
-    
-    @Guide(description: "The general topic/domain of this question (e.g., 'workplace', 'travel', 'food', 'technology', 'daily life', 'sports', 'nature', 'relationships', 'education', 'health'). Must be varied across questions.")
-    var topic: String
 }
 
 // MARK: - Quiz State
@@ -150,14 +156,13 @@ final class QuizViewModel {
                 - Do NOT create distractors that are semantically opposite to context clues in the sentence.
                 - The remaining 2 distractors can be more subtle (near-synonyms with wrong register or slight collocation issues).
 
-                Output requirements:
-                - All content must be in English (the target language being learned).
+                Output fields:
+                - answerPos: part of speech of the correct answer (noun / verb / adjective / adverb)
+                - answerCategory: semantic meaning category of the correct answer (e.g. emotion, collaboration, movement)
+                - topic: subject domain of the sentence (e.g. workplace, travel, food)
+                - distractorReasons: exactly 3 labels in the same order as wrongAnswers; each must be one of: pos_mismatch, register_mismatch, collocation_mismatch, meaning_mismatch; all three must differ
+                - All content must be in English.
                 - Ensure exactly ONE correct answer.
-                - Specify the part of speech (partOfSpeech) of the target word in this context.
-                - Specify the topic/domain (topic) of this question clearly.
-                - The explanation must state:
-                  1. Why the correct answer is right (meaning and usage in this context)
-                  2. Why EACH of the 3 distractors is wrong, specifying the exact reason (part of speech / register / collocation mismatch)
                 """
 
             let userPrompt = "Generate one fill-in-the-blank vocabulary quiz question now."
@@ -199,12 +204,14 @@ final class QuizViewModel {
                 let blanked = processedQuiz.questionSentence.replacingOccurrences(of: #"\[.*?\]"#, with: "______", options: .regularExpression)
                 processedQuiz = QuizOutput(
                     targetWord: processedQuiz.targetWord,
+                    answerPos: processedQuiz.answerPos,
+                    answerCategory: processedQuiz.answerCategory,
+                    topic: processedQuiz.topic,
                     questionSentence: blanked,
                     correctAnswer: processedQuiz.correctAnswer,
                     wrongAnswers: Array(uniqueOrdered.dropFirst()),
-                    explanation: processedQuiz.explanation,
-                    partOfSpeech: processedQuiz.partOfSpeech,
-                    topic: processedQuiz.topic
+                    distractorReasons: processedQuiz.distractorReasons,
+                    explanation: processedQuiz.explanation
                 )
                 
                 withAnimation(.spring(duration: 0.4)) {

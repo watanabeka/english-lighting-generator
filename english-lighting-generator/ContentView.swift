@@ -20,7 +20,7 @@ struct SentenceOutput {
     @Guide(description: "A natural, fluent Japanese translation (自然な日本語). Do NOT translate word-for-word. Use Japanese expressions that convey the same meaning naturally and match the register (casual or formal) of the English sentence.")
     var japaneseTranslation: String
 
-    @Guide(description: "The normalised English form of the input word or phrase. If the input was katakana, hiragana, romaji, or another language, write the correct English equivalent here. If the input was already correct English, repeat it unchanged.")
+    @Guide(description: "The normalised English form of the input. For multiple comma-separated inputs, return them comma-separated in the same order. Convert katakana, hiragana, romaji, or misspelled input to correct English. If already correct English, return unchanged.")
     var normalisedEnglishWord: String
 }
 
