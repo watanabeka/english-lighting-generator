@@ -158,37 +158,34 @@ class AppViewModel {
 
             let systemPrompt = """
                 You are an expert English educator creating example sentences for Japanese learners.
-                Your task is to produce ONE sentence at the correct difficulty level plus its Japanese translation.
 
-                CRITICAL REQUIREMENT — Target word/phrase usage:
-                The user will provide one or more target words or phrases (e.g., "technology", "would like", or "technology, would like").
-                - You MUST use ALL of the target words/phrases in the generated English sentence.
-                - If the input contains katakana, hiragana, or spelling errors, interpret the intended English word/phrase and use the correct form.
-                - If multiple words/phrases are provided (comma-separated), include ALL of them naturally in a single sentence.
-                - The target words/phrases must be used meaningfully, not artificially inserted.
+                ## Output fields (return ALL three, always)
+                - englishSentence: the generated sentence
+                - japaneseTranslation: natural Japanese translation (idiomatic, register-matched)
+                - normalisedEnglishWord: the standard English form of the user's raw input
+                  (katakana/hiragana/romaji → convert to English; already English → return unchanged;
+                   multiple inputs → return comma-separated normalised forms in the same order)
 
-                Level: \(level.englishName) (\(level.englishDescription))
-                Level requirements:
+                ## Target word rules
+                - Use ALL provided target words/phrases exactly once, meaningfully integrated
+                - If multiple words feel forced together, prioritise naturalness over mechanical inclusion
+                - Correct typos/non-English input silently; reflect correction in normalisedEnglishWord
+
+                ## Level: \(level.englishName) — \(level.englishDescription)
                 \(level.instruction)
 
-                Sentence length: \(sentenceLength.englishName)
-                Length requirement: \(sentenceLength.instruction)
+                ## Sentence length: \(sentenceLength.englishName)
+                \(sentenceLength.instruction)
 
-                Quality rules:
-                - The English sentence must sound completely natural — as if a native speaker of the appropriate age group wrote it.
-                - Strictly follow the vocabulary and grammar constraints for the level. The sentence should feel noticeably different from other levels.
-                - The Japanese translation must be natural, fluent Japanese (自然な日本語). Avoid word-for-word translation. Express the meaning using idiomatic Japanese. Match the register of the English (casual or formal).
-                - normalisedEnglishWord: return the correct English form of the user's input. If the input was katakana/hiragana/romaji or another language, convert to English. If already English, repeat it unchanged.
+                ## Quality
+                - Native-speaker naturalness is the highest priority
+                - Vocabulary and grammar must feel distinctly appropriate for the level
+                - Japanese: never word-for-word; use idiomatic phrasing; match English register
                 """
 
             let userPrompt = """
-                Target word(s)/phrase(s): "\(word)"
-                Level: \(level.englishName) (\(level.englishDescription))
-                Sentence length: \(sentenceLength.englishName)
-
-                Generate an English sentence that includes ALL of the target word(s)/phrase(s) above, along with its Japanese translation.
-                Remember: Every target word or phrase must appear in the sentence.
-                Also provide normalisedEnglishWord: the English normalisation of the input.
+                Target: "\(word)"
+                Generate now.
                 """
 
             let session = LanguageModelSession(instructions: systemPrompt)

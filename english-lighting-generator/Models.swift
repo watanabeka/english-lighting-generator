@@ -20,12 +20,10 @@ import SwiftData
 
 @Model
 final class WordHistoryItem {
-    var date: String            // "yyyy-MM-dd"
-    var englishWord: String     // normalised English word / phrase
-    var generationCount: Int
-    
-    // Composite unique constraint: one record per word per day
-    @Attribute(.unique) var compositeKey: String
+    var date: String = ""           // "yyyy-MM-dd"
+    var englishWord: String = ""    // normalised English word / phrase
+    var generationCount: Int = 0
+    var compositeKey: String = ""   // app-side uniqueness key
 
     init(date: String, englishWord: String, generationCount: Int = 1) {
         self.date = date
@@ -46,9 +44,9 @@ final class WordHistoryItem {
 
 @Model
 final class UsageRecord {
-    @Attribute(.unique) var date: String  // "yyyy-MM-dd" - one record per day
-    var aiSentenceCount: Int
-    var aiQuizCount: Int
+    var date: String = ""  // "yyyy-MM-dd" - one record per day
+    var aiSentenceCount: Int = 0
+    var aiQuizCount: Int = 0
 
     init(date: String, aiSentenceCount: Int = 0, aiQuizCount: Int = 0) {
         self.date = date

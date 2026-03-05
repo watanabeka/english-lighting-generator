@@ -28,6 +28,12 @@ struct QuizOutput {
 
     @Guide(description: "A brief explanation (1-2 sentences) of why the correct answer is right. Mention meaning or usage.")
     var explanation: String
+    
+    @Guide(description: "The part of speech of the target word in this context (e.g., 'adjective', 'noun', 'verb', 'adverb').")
+    var partOfSpeech: String
+    
+    @Guide(description: "The general topic/domain of this question (e.g., 'workplace', 'travel', 'food', 'technology', 'daily life', 'sports', 'nature', 'relationships', 'education', 'health'). Must be varied across questions.")
+    var topic: String
 }
 
 // MARK: - Quiz State
@@ -40,6 +46,11 @@ final class QuizViewModel {
     var isGenerating: Bool = false
     var errorMessage: String = ""
     var showExplanation: Bool = false
+    
+    // Track recent topics and words to enforce diversity
+    private var recentTopics: [String] = []
+    private var recentTargetWords: [String] = []
+    private let maxRecentTracking = 5
 
     var isAnswered: Bool { selectedAnswer != nil }
 
@@ -66,13 +77,31 @@ final class QuizViewModel {
                 vocabContext = "The learner has recently studied these words/phrases: \(sample)"
             }
 
-            // Infer approximate level from history breadth
+            // Infer approximate level from history breadth using TOEIC-style bands
             let levelHint: String
             switch historyWords.count {
-            case 0..<5:   levelHint = "elementary (A1-A2)"
-            case 5..<15:  levelHint = "pre-intermediate (A2-B1)"
-            case 15..<30: levelHint = "intermediate (B1-B2)"
-            default:      levelHint = "upper-intermediate to advanced (B2-C1)"
+            case 0..<5:   levelHint = "TOEIC under 300"
+            case 5..<15:  levelHint = "TOEIC 300-400"
+            case 15..<30: levelHint = "TOEIC 400-500"
+            default:      levelHint = "TOEIC 600-700"
+            }
+            
+            // Build topic diversity constraint
+            let topicConstraint: String
+            if recentTopics.isEmpty {
+                topicConstraint = "Vary topics across: workplace, travel, food, technology, daily life, sports, nature, relationships, education, health, hobbies, science, entertainment."
+            } else {
+                let avoided = recentTopics.joined(separator: ", ")
+                topicConstraint = "Choose a topic DIFFERENT from recently used: [\(avoided)]. Select from: workplace, travel, food, technology, daily life, sports, nature, relationships, education, health, hobbies, science, entertainment."
+            }
+            
+            // Build word diversity constraint
+            let wordConstraint: String
+            if recentTargetWords.isEmpty {
+                wordConstraint = "Choose any appropriate target word for the learner's level."
+            } else {
+                let avoided = recentTargetWords.joined(separator: ", ")
+                wordConstraint = "Do NOT reuse these recently tested words: [\(avoided)]. Choose a different word from the learner's history or introduce a new related word."
             }
 
             let systemPrompt = """
@@ -80,16 +109,55 @@ final class QuizViewModel {
                 Your task is to create ONE multiple-choice vocabulary question.
 
                 Learner profile:
-                - Estimated level: \(levelHint)
+                - Estimated level (TOEIC-style band): \(levelHint)
                 - \(vocabContext)
+
+                DIVERSITY CONSTRAINTS (CRITICAL):
+                - Topic diversity: \(topicConstraint)
+                - Word diversity: \(wordConstraint)
+                - NEVER generate questions about museums, exhibits, or art galleries repeatedly.
+                - NEVER use the same adjectives (interesting, fascinating, amazing, boring) in consecutive questions.
 
                 Quiz format rules:
                 - Choose a target word/phrase that is educationally valuable at the learner's level.
                 - Prefer words from the learner's history if available; occasionally introduce a related new word to expand vocabulary.
                 - Write a natural, context-rich fill-in-the-blank sentence.
-                - Provide exactly 3 wrong answers — plausible but clearly incorrect when you know the meaning.
-                - Keep the explanation concise and helpful.
+                - Provide exactly 3 wrong answers.
+                - ALL 4 options (1 correct + 3 wrong) must have the SAME part of speech when used in this specific context.
+                  Example: If the blank requires an adjective, all 4 options must be adjectives.
+                - Each wrong answer must fail for a DIFFERENT, identifiable reason:
+                  • One: wrong part of speech (e.g., adverb instead of adjective) OR clearly different meaning
+                  • One: wrong register (too formal/informal for the context)
+                  • One: wrong collocation (doesn't naturally pair with the surrounding words)
+                - The options must contain exactly 4 DISTINCT words (1 correct + 3 distractors).
+                - Never repeat the same word in the options.
+
+                Context strength — CRITICAL REQUIREMENTS:
+                - The sentence must NOT contain context clues that directly contradict or confirm any specific option.
+                - Avoid adjectives or phrases that strongly imply semantic fields (e.g., "interactive elements" → eliminates "boring", confirms "interesting/amazing").
+                - The learner must know the target word's PRECISE MEANING to choose it — not just eliminate wrong ones by logic or general context.
+                - Example of BAD question:
+                  "The museum featured _ artifacts with interactive elements."
+                  → "interactive" is too strong a hint; "boring" is eliminated instantly.
+                - Example of GOOD question:
+                  "The curator chose _ artifacts that were rarely seen outside of private collections."
+                  → No strong semantic hint; requires knowing "interesting" means "worthy of attention."
+
+                Distractor quality:
+                - At least ONE distractor must be clearly wrong (wrong part of speech, wrong collocation, or clearly different meaning) — not just a near-synonym.
+                  This ensures the question has a solvable baseline and avoids "all answers seem correct" scenarios.
+                - Each distractor must be plausible in isolation but fail for its stated reason (part of speech, register, or collocation).
+                - Do NOT create distractors that are semantically opposite to context clues in the sentence.
+                - The remaining 2 distractors can be more subtle (near-synonyms with wrong register or slight collocation issues).
+
+                Output requirements:
                 - All content must be in English (the target language being learned).
+                - Ensure exactly ONE correct answer.
+                - Specify the part of speech (partOfSpeech) of the target word in this context.
+                - Specify the topic/domain (topic) of this question clearly.
+                - The explanation must state:
+                  1. Why the correct answer is right (meaning and usage in this context)
+                  2. Why EACH of the 3 distractors is wrong, specifying the exact reason (part of speech / register / collocation mismatch)
                 """
 
             let userPrompt = "Generate one fill-in-the-blank vocabulary quiz question now."
@@ -100,8 +168,47 @@ final class QuizViewModel {
                     to: userPrompt,
                     generating: QuizOutput.self
                 )
+                
+                // Defensive post-processing: ensure options are distinct and blank is hidden
+                var processedQuiz = response.content
+                
+                // Track topic and word for diversity
+                recentTopics.append(processedQuiz.topic)
+                if recentTopics.count > maxRecentTracking {
+                    recentTopics.removeFirst()
+                }
+                recentTargetWords.append(processedQuiz.targetWord.lowercased())
+                if recentTargetWords.count > maxRecentTracking {
+                    recentTargetWords.removeFirst()
+                }
+                
+                // De-duplicate options while preserving order
+                var seen = Set<String>()
+                let all = ([processedQuiz.correctAnswer] + processedQuiz.wrongAnswers)
+                var uniqueOrdered: [String] = []
+                for w in all where !seen.contains(w) {
+                    seen.insert(w)
+                    uniqueOrdered.append(w)
+                }
+                // If we lost entries due to duplicates, bail out to trigger a re-generation
+                if uniqueOrdered.count != 4 {
+                    throw NSError(domain: "QuizValidation", code: 1, userInfo: [NSLocalizedDescriptionKey: "Duplicate options detected"])
+                }
+
+                // Replace any bracketed placeholder like [word] with an underscore blank
+                let blanked = processedQuiz.questionSentence.replacingOccurrences(of: #"\[.*?\]"#, with: "______", options: .regularExpression)
+                processedQuiz = QuizOutput(
+                    targetWord: processedQuiz.targetWord,
+                    questionSentence: blanked,
+                    correctAnswer: processedQuiz.correctAnswer,
+                    wrongAnswers: Array(uniqueOrdered.dropFirst()),
+                    explanation: processedQuiz.explanation,
+                    partOfSpeech: processedQuiz.partOfSpeech,
+                    topic: processedQuiz.topic
+                )
+                
                 withAnimation(.spring(duration: 0.4)) {
-                    quiz = response.content
+                    quiz = processedQuiz
                 }
             } catch LanguageModelSession.GenerationError.refusal(let refusal, _) {
                 let L = LocalizationManager.shared
@@ -113,6 +220,12 @@ final class QuizViewModel {
                     errorMessage = "[Refusal] \(L["error.refusalDetail"])\(error.localizedDescription)"
                 }
             } catch {
+                if (error as NSError).domain == "QuizValidation" {
+                    // One-shot retry on validation failure
+                    await Task.yield()
+                    generate(historyWords: historyWords)
+                    return
+                }
                 errorMessage = error.localizedDescription
             }
 
@@ -138,6 +251,7 @@ final class QuizViewModel {
             let record = UsageRecord(date: today, aiSentenceCount: 0, aiQuizCount: 1)
             modelContext.insert(record)
         }
+        try? modelContext.save()
     }
 }
 

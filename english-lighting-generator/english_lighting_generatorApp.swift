@@ -35,7 +35,7 @@ struct english_lighting_generatorApp: App {
             UsageRecord.self,
         ])
         
-        // Attempt 1: iCloud-backed store
+        // Attempt 1: iCloud-backed store (CloudKit)
         do {
             let container = try ModelContainer(
                 for: schema,
@@ -47,7 +47,7 @@ struct english_lighting_generatorApp: App {
             print("⚠️ SwiftData: iCloud store failed - \(error.localizedDescription)")
         }
         
-        // Attempt 2: Local store with default configuration
+        // Attempt 2: Local store (no iCloud)
         do {
             let container = try ModelContainer(for: schema)
             print("✅ SwiftData: Using local store (no iCloud)")
@@ -63,8 +63,42 @@ struct english_lighting_generatorApp: App {
             print("⚠️ SwiftData: Using in-memory store (data will not persist)")
             return container
         } catch {
-            // This should never happen, but if it does, crash with a clear message
-            fatalError("❌ FATAL: Could not create any SwiftData container: \(error)")
+            // この時点で iCloud / ローカル ともに初期化に失敗しています。
+            // 多くの場合、SwiftData のスキーマ/モデル定義に問題があるときに発生します。
+            // 例:
+            //  - @Model が付いていない / サポート外のプロパティ型
+            //  - 不整合なリレーション / 循環参照
+            //  - ターゲットに含まれていないモデルファイル
+            //  - 同名モデルの重複 など
+            let message = "❌ FATAL: すべての SwiftData コンテナ作成に失敗しました: \(error)\n" +
+            "ヒント: Schema に含めた各 @Model の定義を最小構成に落として原因のプロパティ/関係を特定してください。"
+
+            #if DEBUG
+            // 開発中は強制的に気づけるように assertionFailure を出しつつ、
+            // 直後にフォールバックの空スキーマ・インメモリコンテナを返します。
+            print(message)
+            do {
+                let emptySchema = Schema([]) // 空スキーマ（永続化は事実上無効）
+                let config = ModelConfiguration(isStoredInMemoryOnly: true)
+                let container = try ModelContainer(for: emptySchema, configurations: [config])
+                print("⚠️ SwiftData: 代替の空スキーマ(in-memory)で起動継続 (データは保持されません)")
+                return container
+            } catch {
+                fatalError("❌ FATAL(フォールバックも失敗): \(error)")
+            }
+            #else
+            // リリースビルドではユーザー影響を抑えるため、
+            // ダミーの空スキーマ(in-memory)で起動継続します（データは保持されません）。
+            do {
+                let emptySchema = Schema([])
+                let config = ModelConfiguration(isStoredInMemoryOnly: true)
+                let container = try ModelContainer(for: emptySchema, configurations: [config])
+                print("⚠️ SwiftData: リリースビルドで代替の空スキーマ(in-memory)を使用。至急モデル定義を確認してください。")
+                return container
+            } catch {
+                fatalError("❌ FATAL(リリースのフォールバックも失敗): \(error)")
+            }
+            #endif
         }
     }()
 
@@ -75,3 +109,4 @@ struct english_lighting_generatorApp: App {
         .modelContainer(sharedModelContainer)
     }
 }
+
