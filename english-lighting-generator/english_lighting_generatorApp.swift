@@ -34,15 +34,38 @@ struct english_lighting_generatorApp: App {
             WordHistoryItem.self,
             UsageRecord.self,
         ])
-        // Attempt iCloud-backed store; fall back to local store on failure.
-        if let container = try? ModelContainer(
-            for: schema,
-            configurations: [ModelConfiguration(cloudKitDatabase: .automatic)]
-        ) {
+        
+        // Attempt 1: iCloud-backed store
+        do {
+            let container = try ModelContainer(
+                for: schema,
+                configurations: [ModelConfiguration(cloudKitDatabase: .automatic)]
+            )
+            print("✅ SwiftData: Using iCloud-backed store")
             return container
+        } catch {
+            print("⚠️ SwiftData: iCloud store failed - \(error.localizedDescription)")
         }
-        // Fallback: local store (e.g. Simulator without iCloud sign-in)
-        return try! ModelContainer(for: schema)
+        
+        // Attempt 2: Local store with default configuration
+        do {
+            let container = try ModelContainer(for: schema)
+            print("✅ SwiftData: Using local store (no iCloud)")
+            return container
+        } catch {
+            print("❌ SwiftData: Default local store failed - \(error.localizedDescription)")
+        }
+        
+        // Attempt 3: In-memory store (last resort)
+        do {
+            let config = ModelConfiguration(isStoredInMemoryOnly: true)
+            let container = try ModelContainer(for: schema, configurations: [config])
+            print("⚠️ SwiftData: Using in-memory store (data will not persist)")
+            return container
+        } catch {
+            // This should never happen, but if it does, crash with a clear message
+            fatalError("❌ FATAL: Could not create any SwiftData container: \(error)")
+        }
     }()
 
     var body: some Scene {

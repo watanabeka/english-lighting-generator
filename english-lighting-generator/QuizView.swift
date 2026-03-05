@@ -107,7 +107,8 @@ final class QuizViewModel {
                 let L = LocalizationManager.shared
                 do {
                     let explanation = try await refusal.explanation
-                    errorMessage = "[Refusal] \(explanation.content)"
+                    let explanationContent = explanation.content
+                    errorMessage = "[Refusal] \(explanationContent)"
                 } catch {
                     errorMessage = "[Refusal] \(L["error.refusalDetail"])\(error.localizedDescription)"
                 }
@@ -322,11 +323,7 @@ private struct QuizCard: View {
         }
     }
 
-    private enum ChoiceState {
-        case normal, correct, incorrect, dimmed
-    }
-
-    private func choiceState(for option: String) -> ChoiceState {
+    private func choiceState(for option: String) -> ChoiceButton.State {
         guard let selected = selectedAnswer else { return .normal }
         if option == quiz.correctAnswer { return .correct }
         if option == selected { return .incorrect }

@@ -23,11 +23,15 @@ final class WordHistoryItem {
     var date: String            // "yyyy-MM-dd"
     var englishWord: String     // normalised English word / phrase
     var generationCount: Int
+    
+    // Composite unique constraint: one record per word per day
+    @Attribute(.unique) var compositeKey: String
 
     init(date: String, englishWord: String, generationCount: Int = 1) {
         self.date = date
         self.englishWord = englishWord
         self.generationCount = generationCount
+        self.compositeKey = "\(date)|\(englishWord)"
     }
 }
 
@@ -42,7 +46,7 @@ final class WordHistoryItem {
 
 @Model
 final class UsageRecord {
-    var date: String        // "yyyy-MM-dd"  (time is intentionally omitted)
+    @Attribute(.unique) var date: String  // "yyyy-MM-dd" - one record per day
     var aiSentenceCount: Int
     var aiQuizCount: Int
 
