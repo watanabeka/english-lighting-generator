@@ -48,8 +48,16 @@
 
   "quiz.generateButton": "Generar quiz",
   "quiz.prompt": "Listo para el quiz",
-  "quiz.promptDetail": "Toca \"Generar quiz\" para crear una pregunta de opción múltiple.",
+  "quiz.promptDetail": "Toca \"Generar quiz\" para crear un ejercicio de ordenar palabras.",
   "quiz.questionLabel": "Pregunta",
+  "quiz.instruction": "Ordena las palabras para formar una oración correcta en inglés.",
+  "quiz.bankLabel": "Palabras",
+  "quiz.answerLabel": "Tu respuesta",
+  "quiz.answerPlaceholder": "Toca las palabras para ordenarlas",
+  "quiz.checkButton": "Comprobar",
+  "quiz.correct": "¡Correcto!",
+  "quiz.incorrect": "Incorrecto",
+  "quiz.correctSentenceLabel": "Oración correcta",
   "quiz.explanationLabel": "Explicación",
 
   "settings.appVersion": "Versión",

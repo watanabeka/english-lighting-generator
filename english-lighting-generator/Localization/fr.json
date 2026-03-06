@@ -48,8 +48,16 @@
 
   "quiz.generateButton": "Générer un quiz",
   "quiz.prompt": "Prêt pour le quiz",
-  "quiz.promptDetail": "Appuyez sur \"Générer un quiz\" pour créer un QCM basé sur votre vocabulaire.",
+  "quiz.promptDetail": "Appuyez sur \"Générer un quiz\" pour créer un exercice de remise en ordre.",
   "quiz.questionLabel": "Question",
+  "quiz.instruction": "Ordonnez les mots pour former une phrase correcte en anglais.",
+  "quiz.bankLabel": "Mots",
+  "quiz.answerLabel": "Votre réponse",
+  "quiz.answerPlaceholder": "Appuyez sur les mots pour les ordonner",
+  "quiz.checkButton": "Vérifier",
+  "quiz.correct": "Correct !",
+  "quiz.incorrect": "Incorrect",
+  "quiz.correctSentenceLabel": "Phrase correcte",
   "quiz.explanationLabel": "Explication",
 
   "settings.appVersion": "Version",

@@ -48,8 +48,16 @@
 
   "quiz.generateButton": "Buat kuis",
   "quiz.prompt": "Siap untuk kuis",
-  "quiz.promptDetail": "Ketuk \"Buat kuis\" untuk membuat soal pilihan ganda berdasarkan kosakata Anda.",
+  "quiz.promptDetail": "Ketuk \"Buat kuis\" untuk membuat latihan menyusun kata.",
   "quiz.questionLabel": "Soal",
+  "quiz.instruction": "Susun kata-kata berikut menjadi kalimat bahasa Inggris yang benar.",
+  "quiz.bankLabel": "Kata-kata",
+  "quiz.answerLabel": "Jawaban Anda",
+  "quiz.answerPlaceholder": "Ketuk kata untuk menyusunnya",
+  "quiz.checkButton": "Periksa",
+  "quiz.correct": "Benar!",
+  "quiz.incorrect": "Salah",
+  "quiz.correctSentenceLabel": "Kalimat yang benar",
   "quiz.explanationLabel": "Penjelasan",
 
   "settings.appVersion": "Versi",

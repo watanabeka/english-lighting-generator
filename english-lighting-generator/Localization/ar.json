@@ -48,8 +48,16 @@
 
   "quiz.generateButton": "إنشاء اختبار",
   "quiz.prompt": "جاهز للاختبار",
-  "quiz.promptDetail": "اضغط \"إنشاء اختبار\" لإنشاء سؤال اختيار من متعدد بناءً على مفرداتك.",
+  "quiz.promptDetail": "اضغط \"إنشاء اختبار\" لإنشاء تمرين ترتيب الكلمات.",
   "quiz.questionLabel": "السؤال",
+  "quiz.instruction": "رتّب الكلمات لتكوين جملة إنجليزية صحيحة.",
+  "quiz.bankLabel": "الكلمات",
+  "quiz.answerLabel": "إجابتك",
+  "quiz.answerPlaceholder": "اضغط على الكلمات لترتيبها",
+  "quiz.checkButton": "تحقق",
+  "quiz.correct": "صحيح!",
+  "quiz.incorrect": "خطأ",
+  "quiz.correctSentenceLabel": "الجملة الصحيحة",
   "quiz.explanationLabel": "الشرح",
 
   "settings.appVersion": "الإصدار",

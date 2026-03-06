@@ -48,8 +48,16 @@
 
   "quiz.generateButton": "Tạo quiz",
   "quiz.prompt": "Sẵn sàng làm quiz",
-  "quiz.promptDetail": "Nhấn \"Tạo quiz\" để tạo câu hỏi trắc nghiệm dựa trên từ vựng của bạn.",
+  "quiz.promptDetail": "Nhấn \"Tạo quiz\" để tạo bài tập sắp xếp từ.",
   "quiz.questionLabel": "Câu hỏi",
+  "quiz.instruction": "Sắp xếp các từ sau để tạo thành câu tiếng Anh đúng.",
+  "quiz.bankLabel": "Từ",
+  "quiz.answerLabel": "Câu trả lời",
+  "quiz.answerPlaceholder": "Nhấn vào từ để sắp xếp",
+  "quiz.checkButton": "Kiểm tra",
+  "quiz.correct": "Đúng!",
+  "quiz.incorrect": "Sai",
+  "quiz.correctSentenceLabel": "Câu đúng",
   "quiz.explanationLabel": "Giải thích",
 
   "settings.appVersion": "Phiên bản",

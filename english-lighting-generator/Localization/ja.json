@@ -48,8 +48,16 @@
 
   "quiz.generateButton": "問題を生成",
   "quiz.prompt": "問題を生成してください",
-  "quiz.promptDetail": "「問題を生成」ボタンを押すと、履歴の単語をもとに4択問題が生成されます。",
+  "quiz.promptDetail": "「問題を生成」ボタンを押すと、単語並び替え問題が生成されます。",
   "quiz.questionLabel": "問題",
+  "quiz.instruction": "次の単語を正しい順に並べて英文を作ってください。",
+  "quiz.bankLabel": "単語",
+  "quiz.answerLabel": "回答エリア",
+  "quiz.answerPlaceholder": "単語をタップして並べてください",
+  "quiz.checkButton": "答え合わせ",
+  "quiz.correct": "正解！",
+  "quiz.incorrect": "不正解",
+  "quiz.correctSentenceLabel": "正しい文",
   "quiz.explanationLabel": "解説",
 
   "settings.appVersion": "バージョン",
