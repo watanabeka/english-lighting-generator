@@ -166,12 +166,11 @@ final class QuizViewModel {
                     bankTokens = tokens
                 }
             } catch LanguageModelSession.GenerationError.refusal(let refusal, _) {
-                let L = LocalizationManager.shared
                 do {
-                    let explanation = try await refusal.explanation
-                    errorMessage = "[Refusal] \(explanation.content)"
+                    let content = try await Task.detached { try await refusal.explanation.content }.value
+                    errorMessage = "[Refusal] \(content)"
                 } catch {
-                    errorMessage = "[Refusal] \(L["error.refusalDetail"])\(error.localizedDescription)"
+                    errorMessage = "[Refusal] \(error.localizedDescription)"
                 }
             } catch {
                 if (error as NSError).domain == "QuizValidation" {
@@ -471,17 +470,21 @@ private struct ResultSection: View {
 
     @Environment(LocalizationManager.self) private var L
 
+    private var accentColor: Color { isCorrect ? .green : .red }
+    private var badgeIcon: String { isCorrect ? "checkmark.circle.fill" : "xmark.circle.fill" }
+    private var userSentenceColor: Color { isCorrect ? .primary : Color.red.opacity(0.8) }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
 
             // Badge
             HStack(spacing: 8) {
-                Image(systemName: isCorrect ? "checkmark.circle.fill" : "xmark.circle.fill")
+                Image(systemName: badgeIcon)
                     .font(.title2)
-                    .foregroundStyle(isCorrect ? .green : .red)
+                    .foregroundStyle(accentColor)
                 Text(isCorrect ? L["quiz.correct"] : L["quiz.incorrect"])
                     .font(.headline)
-                    .foregroundStyle(isCorrect ? .green : .red)
+                    .foregroundStyle(accentColor)
             }
 
             // User's sentence
@@ -493,7 +496,7 @@ private struct ResultSection: View {
                     Text(userSentence)
                         .font(.body)
                         .textSelection(.enabled)
-                        .foregroundStyle(isCorrect ? .primary : .red.opacity(0.8))
+                        .foregroundStyle(userSentenceColor)
                 }
                 .padding(4)
             }
@@ -507,7 +510,7 @@ private struct ResultSection: View {
                     Text(quiz.correctSentence)
                         .font(.body)
                         .textSelection(.enabled)
-                        .foregroundStyle(.green.opacity(0.9))
+                        .foregroundStyle(Color.green.opacity(0.9))
                 }
                 .padding(4)
             }
@@ -527,10 +530,10 @@ private struct ResultSection: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill((isCorrect ? Color.green : Color.red).opacity(0.05))
+                .fill(accentColor.opacity(0.05))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke((isCorrect ? Color.green : Color.red).opacity(0.2), lineWidth: 1)
+                        .stroke(accentColor.opacity(0.2), lineWidth: 1)
                 )
         )
     }

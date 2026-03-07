@@ -245,12 +245,11 @@ class AppViewModel {
                 recordUsage(sentence: true, modelContext: modelContext)
 
             } catch LanguageModelSession.GenerationError.refusal(let refusal, _) {
-                let L = LocalizationManager.shared
                 do {
-                    let explanation = try await refusal.explanation
-                    errorMessage = "[Refusal] \(explanation.content)"
+                    let content = try await Task.detached { try await refusal.explanation.content }.value
+                    errorMessage = "[Refusal] \(content)"
                 } catch {
-                    errorMessage = "[Refusal] \(L["error.refusalDetail"])\(error.localizedDescription)"
+                    errorMessage = "[Refusal] \(error.localizedDescription)"
                 }
             } catch {
                 errorMessage = error.localizedDescription
