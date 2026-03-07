@@ -114,6 +114,10 @@ final class QuizViewModel {
             let systemPrompt = """
                 You are an English language educator creating word-order practice sentences.
 
+                ## CRITICAL: Language requirement
+                The fields `explanation` and `translation` MUST be written entirely in \(nativeLang).
+                Do NOT write them in English or any other language. This is mandatory.
+
                 ## Task
                 Generate ONE natural English sentence for a word-order scramble exercise.
 
@@ -128,8 +132,8 @@ final class QuizViewModel {
                 ## Output fields
                 - correctSentence: the complete, correct English sentence
                 - topic: subject domain (e.g. workplace, travel, food)
-                - explanation: key grammar point in \(nativeLang) (1–2 sentences)
-                - translation: natural \(nativeLang) translation (idiomatic, not word-for-word)
+                - explanation: key grammar point (1–2 sentences) in \(nativeLang) — NOT in English
+                - translation: natural translation of the sentence in \(nativeLang) — NOT in English
                 """
 
             let session = LanguageModelSession(instructions: systemPrompt)
@@ -279,7 +283,7 @@ private struct QuizContentView: View {
             GroupBox {
                 VStack(alignment: .leading, spacing: 16) {
                     FormSection(title: L["input.wordLabel"]) {
-                        TextField(L["quiz.wordHintPlaceholder"], text: $viewModel.word)
+                        TextField(L["input.wordPlaceholder"], text: $viewModel.word)
                             .textFieldStyle(.roundedBorder)
                     }
                     Divider()
@@ -380,60 +384,56 @@ private struct WordOrderCard: View {
                 }
             }
 
-            // ── Word Bank ─────────────────────────────────────────────────
-            GroupBox {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(L["quiz.bankLabel"])
-                        .font(.caption).fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
-                    WrapLayout(spacing: 8) {
-                        ForEach(viewModel.bankTokens) { token in
-                            WordChip(word: token.word, isPlaced: false, isDisabled: viewModel.isChecked) {
-                                withAnimation(.spring(duration: 0.2)) { viewModel.tapBank(token) }
-                            }
-                        }
-                    }
-                    .frame(minHeight: 36)
-                }
-                .padding(4)
-            }
-
-            // ── Answer Area ───────────────────────────────────────────────
-            GroupBox {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(L["quiz.answerLabel"])
-                        .font(.caption).fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
-                    ZStack(alignment: .topLeading) {
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.primary.opacity(0.03))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(
-                                        viewModel.isChecked
-                                            ? (viewModel.isCorrect ? Color.green.opacity(0.5) : Color.red.opacity(0.5))
-                                            : Color.primary.opacity(0.12),
-                                        lineWidth: 1.5
-                                    )
-                            )
-                        if viewModel.placedTokens.isEmpty {
-                            Text(L["quiz.answerPlaceholder"])
-                                .font(.subheadline).foregroundStyle(.tertiary)
-                                .padding(10)
-                        } else {
-                            WrapLayout(spacing: 8) {
-                                ForEach(viewModel.placedTokens) { token in
-                                    WordChip(word: token.word, isPlaced: true, isDisabled: viewModel.isChecked) {
-                                        withAnimation(.spring(duration: 0.2)) { viewModel.tapPlaced(token) }
-                                    }
+            // ── Word Bank + Answer (hidden after check) ───────────────────
+            if !viewModel.isChecked {
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(L["quiz.bankLabel"])
+                            .font(.caption).fontWeight(.semibold)
+                            .foregroundStyle(.secondary)
+                        WrapLayout(spacing: 8) {
+                            ForEach(viewModel.bankTokens) { token in
+                                WordChip(word: token.word, isPlaced: false, isDisabled: false) {
+                                    withAnimation(.spring(duration: 0.2)) { viewModel.tapBank(token) }
                                 }
                             }
-                            .padding(8)
                         }
+                        .frame(minHeight: 36)
                     }
-                    .frame(minHeight: 52)
+                    .padding(4)
                 }
-                .padding(4)
+
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(L["quiz.answerLabel"])
+                            .font(.caption).fontWeight(.semibold)
+                            .foregroundStyle(.secondary)
+                        ZStack(alignment: .topLeading) {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.primary.opacity(0.03))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color.primary.opacity(0.12), lineWidth: 1.5)
+                                )
+                            if viewModel.placedTokens.isEmpty {
+                                Text(L["quiz.answerPlaceholder"])
+                                    .font(.subheadline).foregroundStyle(.tertiary)
+                                    .padding(10)
+                            } else {
+                                WrapLayout(spacing: 8) {
+                                    ForEach(viewModel.placedTokens) { token in
+                                        WordChip(word: token.word, isPlaced: true, isDisabled: false) {
+                                            withAnimation(.spring(duration: 0.2)) { viewModel.tapPlaced(token) }
+                                        }
+                                    }
+                                }
+                                .padding(8)
+                            }
+                        }
+                        .frame(minHeight: 52)
+                    }
+                    .padding(4)
+                }
             }
 
             // ── Check Button ──────────────────────────────────────────────

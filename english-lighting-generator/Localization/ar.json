@@ -4,7 +4,7 @@
   "unavailable.osRequired": "يتطلب macOS 26.0 أو أحدث",
   "unavailable.aiUnavailable": "Apple Intelligence غير متاح",
   "input.wordLabel": "كلمة",
-  "input.wordPlaceholder": "e.g. technology, would like",
+  "input.wordPlaceholder": "technology, would like",
   "input.sentenceLengthLabel": "الطول",
   "input.levelLabel": "المستوى",
   "button.generating": "جارٍ الإنشاء...",
@@ -60,5 +60,6 @@
   "settings.appVersion": "الإصدار",
   "settings.review": "تقييم",
   "settings.reviewApp": "قيّم التطبيق",
-  "settings.displayLanguage": "اللغة"
+  "settings.displayLanguage": "اللغة",
+  "analytics.historyLabel": "سجل الدراسة"
 }

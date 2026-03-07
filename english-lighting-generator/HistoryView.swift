@@ -22,13 +22,50 @@ struct AnalyticsView: View {
     var onSelectWord: (String) -> Void
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                statsSection
-                historySection
+        VStack(spacing: 0) {
+            statsSection
+                .padding(.horizontal)
+                .padding(.top, 8)
+                .padding(.bottom, 12)
+
+            Divider()
+
+            List {
+                Section {
+                    if allItems.isEmpty {
+                        emptyState
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                    } else {
+                        ForEach(visibleItems) { item in
+                            HistoryItemRow(item: item, onGenerate: { onSelectWord(item.englishWord) })
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                                .swipeActions(edge: .trailing) {
+                                    Button(role: .destructive) {
+                                        modelContext.delete(item)
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
+                        }
+                        if hasMore {
+                            ProgressView()
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .onAppear { daysShown += 7 }
+                        }
+                    }
+                } header: {
+                    Text(L["analytics.historyLabel"])
+                        .font(.footnote).fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                }
             }
-            .padding([.horizontal, .bottom])
-            .padding(.top, 5)
+            .listStyle(.plain)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -36,8 +73,13 @@ struct AnalyticsView: View {
     // MARK: - Stats Section
 
     private var statsSection: some View {
-        GroupBox {
-            VStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(L["analytics.historyTitle"])
+                .font(.footnote).fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+                .padding(.bottom, 4)
+
+            VStack(spacing: 10) {
                 StatRow(
                     title: L["analytics.today"],
                     count: totalUsage(daysAgo: 0, count: 1),
@@ -71,40 +113,10 @@ struct AnalyticsView: View {
                     usageFormat: L["analytics.usageFormat"]
                 )
             }
-            .padding(4)
-        } label: {
-            Label(L["analytics.historyTitle"], systemImage: "chart.bar.fill").font(.headline)
         }
     }
 
-    // MARK: - History Section
-
-    private var historySection: some View {
-        Group {
-            if allItems.isEmpty {
-                emptyState
-            } else {
-                LazyVStack(spacing: 8) {
-                    ForEach(visibleItems) { item in
-                        HistoryItemRow(item: item, onGenerate: { onSelectWord(item.englishWord) })
-                            .swipeActions(edge: .trailing) {
-                                Button(role: .destructive) {
-                                    modelContext.delete(item)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
-                    }
-                    if hasMore {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                            .onAppear { daysShown += 7 }
-                    }
-                }
-            }
-        }
-    }
+    // MARK: - Empty State
 
     private var emptyState: some View {
         VStack(spacing: 16) {

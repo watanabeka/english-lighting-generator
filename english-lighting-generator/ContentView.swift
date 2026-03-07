@@ -153,9 +153,9 @@ struct ActionButtonsView: View {
         HStack(spacing: 48) {
             Spacer()
             Button(action: onReset) {
-                Image(systemName: "checkmark.circle")
+                Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 34))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.green)
             }
             .buttonStyle(.plain)
             Button(action: onRegenerate) {
@@ -182,11 +182,13 @@ class AppViewModel {
     var translationResult: String = ""
     var isGenerating: Bool = false
     var errorMessage: String = ""
+    var isTranslationVisible: Bool = false
 
     func reset() {
         englishResult = ""
         translationResult = ""
         errorMessage = ""
+        isTranslationVisible = false
     }
 
     func generate(modelContext: ModelContext) {
@@ -463,21 +465,36 @@ struct GeneratorView: View {
             VStack(alignment: .leading, spacing: 16) {
                 ResultCard(
                     label: L["output.englishLabel"],
-                    systemImage: "e.circle.fill",
-                    color: .blue,
+                    systemImage: "globe",
+                    color: .tint,
                     text: viewModel.englishResult
                 )
-                ResultCard(
-                    label: L["output.japaneseLabel"],
-                    systemImage: "j.circle.fill",
-                    color: .orange,
-                    text: viewModel.translationResult
-                )
+                if viewModel.isTranslationVisible {
+                    ResultCard(
+                        label: L["output.japaneseLabel"],
+                        systemImage: "character.bubble",
+                        color: .tint,
+                        text: viewModel.translationResult
+                    )
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                } else {
+                    Button(action: {
+                        withAnimation(.spring(duration: 0.35)) {
+                            viewModel.isTranslationVisible = true
+                        }
+                    }) {
+                        Label(L["button.showJapanese"], systemImage: "eye")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .transition(.opacity)
+                }
             }
             .padding(4)
         } label: {
             Label(L["output.title"], systemImage: "sparkles").font(.headline)
         }
+        .animation(.spring(duration: 0.35), value: viewModel.isTranslationVisible)
     }
 }
 

@@ -4,7 +4,7 @@
   "unavailable.osRequired": "Perlu macOS 26.0 atau lebih baru",
   "unavailable.aiUnavailable": "Apple Intelligence tidak tersedia",
   "input.wordLabel": "Kata",
-  "input.wordPlaceholder": "e.g. technology, would like",
+  "input.wordPlaceholder": "technology, would like",
   "input.sentenceLengthLabel": "Panjang",
   "input.levelLabel": "Level",
   "button.generating": "Membuat...",
@@ -60,5 +60,6 @@
   "settings.appVersion": "Versi",
   "settings.review": "Ulasan",
   "settings.reviewApp": "Beri ulasan",
-  "settings.displayLanguage": "Bahasa"
+  "settings.displayLanguage": "Bahasa",
+  "analytics.historyLabel": "Riwayat belajar"
 }

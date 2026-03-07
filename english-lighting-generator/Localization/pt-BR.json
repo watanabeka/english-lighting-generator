@@ -4,7 +4,7 @@
   "unavailable.osRequired": "Requer macOS 26.0 ou posterior",
   "unavailable.aiUnavailable": "Apple Intelligence indisponível",
   "input.wordLabel": "Palavra",
-  "input.wordPlaceholder": "e.g. technology, would like",
+  "input.wordPlaceholder": "technology, would like",
   "input.sentenceLengthLabel": "Tamanho",
   "input.levelLabel": "Nível",
   "button.generating": "Gerando...",
@@ -60,5 +60,6 @@
   "settings.appVersion": "Versão",
   "settings.review": "Avaliação",
   "settings.reviewApp": "Avaliar app",
-  "settings.displayLanguage": "Idioma"
+  "settings.displayLanguage": "Idioma",
+  "analytics.historyLabel": "Histórico de estudo"
 }

@@ -4,7 +4,7 @@
   "unavailable.osRequired": "Yêu cầu macOS 26.0 trở lên",
   "unavailable.aiUnavailable": "Apple Intelligence không khả dụng",
   "input.wordLabel": "Từ",
-  "input.wordPlaceholder": "e.g. technology, would like",
+  "input.wordPlaceholder": "technology, would like",
   "input.sentenceLengthLabel": "Độ dài",
   "input.levelLabel": "Cấp độ",
   "button.generating": "Đang tạo...",
@@ -60,5 +60,6 @@
   "settings.appVersion": "Phiên bản",
   "settings.review": "Đánh giá",
   "settings.reviewApp": "Đánh giá app",
-  "settings.displayLanguage": "Ngôn ngữ"
+  "settings.displayLanguage": "Ngôn ngữ",
+  "analytics.historyLabel": "Lịch sử học tập"
 }
