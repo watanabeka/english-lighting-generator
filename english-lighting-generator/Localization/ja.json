@@ -37,18 +37,27 @@
   "level.level4.description": "英検準1級 / TOEIC 650-800",
   "level.level5.description": "英検1級 / TOEIC 800+",
 
-  "tab.aiSentence": "AI英作文",
-  "tab.history": "履歴",
-  "tab.quiz": "AI問題",
+  "tab.aiSentence": "英文作成",
+  "tab.history": "分析",
+  "tab.quiz": "並べ替え",
   "tab.settings": "設定",
 
   "history.empty": "履歴なし",
   "history.emptyDetail": "AI英作文タブで単語を入力して生成すると、ここに履歴が表示されます。",
   "history.generateButton": "AI英作文タブで生成",
 
+  "analytics.today": "今日",
+  "analytics.week7": "7日間",
+  "analytics.month28": "28日間",
+  "analytics.vsYesterday": "昨日比",
+  "analytics.vsPrevious": "前期間比",
+  "analytics.usageFormat": "%d回",
+  "analytics.historyTitle": "学習記録",
+
   "quiz.generateButton": "問題を生成",
   "quiz.prompt": "問題を生成してください",
   "quiz.promptDetail": "「問題を生成」ボタンを押すと、単語並び替え問題が生成されます。",
+  "quiz.wordHintPlaceholder": "任意: トピックのヒント",
   "quiz.questionLabel": "問題",
   "quiz.instruction": "次の単語を正しい順に並べて英文を作ってください。",
   "quiz.bankLabel": "単語",
@@ -57,6 +66,7 @@
   "quiz.checkButton": "答え合わせ",
   "quiz.correct": "正解！",
   "quiz.incorrect": "不正解",
+  "quiz.yourSentenceLabel": "あなたの回答",
   "quiz.correctSentenceLabel": "正しい文",
   "quiz.explanationLabel": "解説",
 

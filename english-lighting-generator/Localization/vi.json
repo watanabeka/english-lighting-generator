@@ -1,54 +1,51 @@
 {
   "app.name": "AI Tiếng Anh",
-
   "unavailable.title": "Không Khả Dụng",
   "unavailable.osRequired": "Yêu cầu macOS 26.0 trở lên",
   "unavailable.aiUnavailable": "Apple Intelligence không khả dụng",
-
   "input.wordLabel": "Từ",
   "input.wordPlaceholder": "e.g. technology, would like",
   "input.sentenceLengthLabel": "Độ dài",
   "input.levelLabel": "Cấp độ",
-
   "button.generating": "Đang tạo...",
   "button.generate": "Tạo câu",
   "button.hideJapanese": "Ẩn bản dịch",
   "button.showJapanese": "Xem bản dịch",
-
   "output.englishLabel": "English",
   "output.japaneseLabel": "Bản dịch",
   "output.title": "Kết quả",
-
   "error.refusalDetail": "Chi tiết: ",
-
   "sentenceLength.short": "Ngắn",
   "sentenceLength.normal": "Bình thường",
   "sentenceLength.long": "Dài",
-
   "level.level1": "Lv.1",
   "level.level2": "Lv.2",
   "level.level3": "Lv.3",
   "level.level4": "Lv.4",
   "level.level5": "Lv.5",
-
   "level.level1.description": "A1 / TOEIC 300-",
   "level.level2.description": "A2 / TOEIC 300-500",
   "level.level3.description": "B1-B2 / TOEIC 500-650",
   "level.level4.description": "B2-C1 / TOEIC 650-800",
   "level.level5.description": "C1-C2 / TOEIC 800+",
-
-  "tab.aiSentence": "Câu AI",
-  "tab.history": "Lịch sử",
-  "tab.quiz": "Quiz AI",
+  "tab.aiSentence": "Tạo câu",
+  "tab.history": "Phân tích",
+  "tab.quiz": "Sắp xếp",
   "tab.settings": "Cài đặt",
-
   "history.empty": "Chưa có lịch sử",
-  "history.emptyDetail": "Tạo câu trong tab Câu AI và lịch sử sẽ hiển thị ở đây.",
-  "history.generateButton": "Tạo trong Câu AI",
-
+  "history.emptyDetail": "Tạo câu trong tab Tạo câu và lịch sử sẽ hiển thị ở đây.",
+  "history.generateButton": "Tạo trong Tạo câu",
+  "analytics.today": "Hôm nay",
+  "analytics.week7": "7 ngày",
+  "analytics.month28": "28 ngày",
+  "analytics.vsYesterday": "so hôm qua",
+  "analytics.vsPrevious": "so kỳ trước",
+  "analytics.usageFormat": "%d lần",
+  "analytics.historyTitle": "Lịch sử học tập",
   "quiz.generateButton": "Tạo quiz",
   "quiz.prompt": "Sẵn sàng làm quiz",
   "quiz.promptDetail": "Nhấn \"Tạo quiz\" để tạo bài tập sắp xếp từ.",
+  "quiz.wordHintPlaceholder": "Tùy chọn: gợi ý chủ đề",
   "quiz.questionLabel": "Câu hỏi",
   "quiz.instruction": "Sắp xếp các từ sau để tạo thành câu tiếng Anh đúng.",
   "quiz.bankLabel": "Từ",
@@ -57,9 +54,9 @@
   "quiz.checkButton": "Kiểm tra",
   "quiz.correct": "Đúng!",
   "quiz.incorrect": "Sai",
+  "quiz.yourSentenceLabel": "Câu trả lời của bạn",
   "quiz.correctSentenceLabel": "Câu đúng",
   "quiz.explanationLabel": "Giải thích",
-
   "settings.appVersion": "Phiên bản",
   "settings.review": "Đánh giá",
   "settings.reviewApp": "Đánh giá app",

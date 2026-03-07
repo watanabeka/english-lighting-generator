@@ -1,54 +1,51 @@
 {
   "app.name": "AI Anglais",
-
   "unavailable.title": "Non disponible",
   "unavailable.osRequired": "Requiert macOS 26.0 ou ultérieur",
   "unavailable.aiUnavailable": "Apple Intelligence non disponible",
-
   "input.wordLabel": "Mot",
   "input.wordPlaceholder": "e.g. technology, would like",
   "input.sentenceLengthLabel": "Longueur",
   "input.levelLabel": "Niveau",
-
   "button.generating": "Génération...",
   "button.generate": "Générer phrase",
   "button.hideJapanese": "Masquer traduction",
   "button.showJapanese": "Voir traduction",
-
   "output.englishLabel": "English",
   "output.japaneseLabel": "Traduction",
   "output.title": "Résultat",
-
   "error.refusalDetail": "Détails : ",
-
   "sentenceLength.short": "Courte",
   "sentenceLength.normal": "Normale",
   "sentenceLength.long": "Longue",
-
   "level.level1": "Lv.1",
   "level.level2": "Lv.2",
   "level.level3": "Lv.3",
   "level.level4": "Lv.4",
   "level.level5": "Lv.5",
-
   "level.level1.description": "A1 / TOEIC 300-",
   "level.level2.description": "A2 / TOEIC 300-500",
   "level.level3.description": "B1-B2 / TOEIC 500-650",
   "level.level4.description": "B2-C1 / TOEIC 650-800",
   "level.level5.description": "C1-C2 / TOEIC 800+",
-
-  "tab.aiSentence": "Phrases AI",
-  "tab.history": "Historique",
-  "tab.quiz": "Quiz AI",
+  "tab.aiSentence": "Créer phrase",
+  "tab.history": "Analyse",
+  "tab.quiz": "Ordonner",
   "tab.settings": "Réglages",
-
   "history.empty": "Aucun historique",
-  "history.emptyDetail": "Générez des phrases dans Phrases AI et l'historique apparaîtra ici.",
-  "history.generateButton": "Générer dans Phrases AI",
-
+  "history.emptyDetail": "Générez des phrases dans Créer phrase et l'historique apparaîtra ici.",
+  "history.generateButton": "Générer dans Créer phrase",
+  "analytics.today": "Aujourd'hui",
+  "analytics.week7": "7 jours",
+  "analytics.month28": "28 jours",
+  "analytics.vsYesterday": "vs hier",
+  "analytics.vsPrevious": "vs période précédente",
+  "analytics.usageFormat": "%d fois",
+  "analytics.historyTitle": "Historique d'étude",
   "quiz.generateButton": "Générer un quiz",
   "quiz.prompt": "Prêt pour le quiz",
   "quiz.promptDetail": "Appuyez sur \"Générer un quiz\" pour créer un exercice de remise en ordre.",
+  "quiz.wordHintPlaceholder": "Optionnel : indice de sujet",
   "quiz.questionLabel": "Question",
   "quiz.instruction": "Ordonnez les mots pour former une phrase correcte en anglais.",
   "quiz.bankLabel": "Mots",
@@ -57,9 +54,9 @@
   "quiz.checkButton": "Vérifier",
   "quiz.correct": "Correct !",
   "quiz.incorrect": "Incorrect",
+  "quiz.yourSentenceLabel": "Votre réponse",
   "quiz.correctSentenceLabel": "Phrase correcte",
   "quiz.explanationLabel": "Explication",
-
   "settings.appVersion": "Version",
   "settings.review": "Avis",
   "settings.reviewApp": "Évaluer l'app",

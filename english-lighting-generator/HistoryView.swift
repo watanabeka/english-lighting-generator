@@ -8,36 +8,103 @@
 import SwiftUI
 import SwiftData
 
-// MARK: - History View
+// MARK: - Analytics View
 
-struct HistoryView: View {
+struct AnalyticsView: View {
     @Environment(LocalizationManager.self) private var L
     @Environment(\.modelContext) private var modelContext
 
-    // Sorted newest-first by date string (yyyy-MM-dd), then by generationCount desc
-    @Query(sort: [
-        SortDescriptor(\WordHistoryItem.date, order: .reverse),
-        SortDescriptor(\WordHistoryItem.generationCount, order: .reverse)
-    ])
-    private var items: [WordHistoryItem]
+    @Query(sort: \UsageRecord.date, order: .reverse) private var usageRecords: [UsageRecord]
+    @Query(sort: \WordHistoryItem.timestamp, order: .reverse) private var allItems: [WordHistoryItem]
 
-    // Callback: user tapped "Generate" in History → pre-fill the AI Sentence tab
+    @State private var daysShown = 7
+
     var onSelectWord: (String) -> Void
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if items.isEmpty {
-                    emptyState
-                } else {
-                    historyList
-                }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                statsSection
+                historySection
             }
-            .navigationTitle(L["tab.history"])
+            .padding([.horizontal, .bottom])
+            .padding(.top, 5)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - Stats Section
+
+    private var statsSection: some View {
+        GroupBox {
+            VStack(spacing: 12) {
+                StatRow(
+                    title: L["analytics.today"],
+                    count: totalUsage(daysAgo: 0, count: 1),
+                    comparison: pctChange(
+                        current: totalUsage(daysAgo: 0, count: 1),
+                        previous: totalUsage(daysAgo: 1, count: 1)
+                    ),
+                    compLabel: L["analytics.vsYesterday"],
+                    usageFormat: L["analytics.usageFormat"]
+                )
+                Divider()
+                StatRow(
+                    title: L["analytics.week7"],
+                    count: totalUsage(daysAgo: 0, count: 7),
+                    comparison: pctChange(
+                        current: totalUsage(daysAgo: 0, count: 7),
+                        previous: totalUsage(daysAgo: 7, count: 7)
+                    ),
+                    compLabel: L["analytics.vsPrevious"],
+                    usageFormat: L["analytics.usageFormat"]
+                )
+                Divider()
+                StatRow(
+                    title: L["analytics.month28"],
+                    count: totalUsage(daysAgo: 0, count: 28),
+                    comparison: pctChange(
+                        current: totalUsage(daysAgo: 0, count: 28),
+                        previous: totalUsage(daysAgo: 28, count: 28)
+                    ),
+                    compLabel: L["analytics.vsPrevious"],
+                    usageFormat: L["analytics.usageFormat"]
+                )
+            }
+            .padding(4)
+        } label: {
+            Label(L["analytics.historyTitle"], systemImage: "chart.bar.fill").font(.headline)
         }
     }
 
-    // MARK: - Empty State
+    // MARK: - History Section
+
+    private var historySection: some View {
+        Group {
+            if allItems.isEmpty {
+                emptyState
+            } else {
+                LazyVStack(spacing: 8) {
+                    ForEach(visibleItems) { item in
+                        HistoryItemRow(item: item, onGenerate: { onSelectWord(item.englishWord) })
+                            .swipeActions(edge: .trailing) {
+                                Button(role: .destructive) {
+                                    modelContext.delete(item)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                    }
+                    if hasMore {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .onAppear { daysShown += 7 }
+                    }
+                }
+            }
+        }
+    }
 
     private var emptyState: some View {
         VStack(spacing: 16) {
@@ -45,118 +112,98 @@ struct HistoryView: View {
                 .font(.system(size: 52))
                 .foregroundStyle(.secondary)
             Text(L["history.empty"])
-                .font(.headline)
-                .foregroundStyle(.secondary)
+                .font(.headline).foregroundStyle(.secondary)
             Text(L["history.emptyDetail"])
-                .font(.subheadline)
-                .foregroundStyle(.tertiary)
+                .font(.subheadline).foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
-        }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    // MARK: - History List
-
-    private var historyList: some View {
-        List {
-            ForEach(groupedByDate, id: \.date) { group in
-                Section(header: Text(formattedDate(group.date))) {
-                    ForEach(group.items) { item in
-                        HistoryRow(item: item, L: L, onGenerate: {
-                            onSelectWord(item.englishWord)
-                        })
-                    }
-                    .onDelete { offsets in
-                        deleteItems(at: offsets, in: group.items)
-                    }
-                }
+            Button(action: { onSelectWord("") }) {
+                Label(L["history.generateButton"], systemImage: "wand.and.sparkles")
             }
         }
-        .listStyle(.insetGrouped)
+        .padding()
+        .frame(maxWidth: .infinity)
     }
 
-    // MARK: - Grouping
+    // MARK: - Helpers
 
-    private struct DateGroup {
-        let date: String
-        var items: [WordHistoryItem]
+    private var cutoffDate: String { String.dateKey(daysAgo: daysShown - 1) }
+    private var visibleItems: [WordHistoryItem] { allItems.filter { $0.date >= cutoffDate } }
+    private var hasMore: Bool { allItems.count > visibleItems.count }
+
+    private func totalUsage(daysAgo start: Int, count: Int) -> Int {
+        let dates = Set((start..<(start + count)).map { String.dateKey(daysAgo: $0) })
+        return usageRecords
+            .filter { dates.contains($0.date) }
+            .reduce(0) { $0 + $1.aiSentenceCount + $1.aiQuizCount }
     }
 
-    private var groupedByDate: [DateGroup] {
-        var groups: [String: [WordHistoryItem]] = [:]
-        for item in items {
-            groups[item.date, default: []].append(item)
-        }
-        return groups
-            .sorted { $0.key > $1.key }
-            .map { DateGroup(date: $0.key, items: $0.value) }
-    }
-
-    // MARK: - Delete
-
-    private func deleteItems(at offsets: IndexSet, in group: [WordHistoryItem]) {
-        for index in offsets {
-            modelContext.delete(group[index])
-        }
-    }
-
-    // MARK: - Date Formatting
-
-    private func formattedDate(_ key: String) -> String {
-        let parser = DateFormatter()
-        parser.dateFormat = "yyyy-MM-dd"
-        parser.locale = Locale(identifier: "en_US_POSIX")
-        guard let date = parser.date(from: key) else { return key }
-
-        let formatter = DateFormatter()
-        formatter.dateStyle = .long
-        formatter.timeStyle = .none
-        formatter.locale = Locale.current
-        return formatter.string(from: date)
+    private func pctChange(current: Int, previous: Int) -> String {
+        guard previous > 0 else { return current > 0 ? "+∞%" : "–" }
+        let pct = Double(current - previous) / Double(previous) * 100
+        return String(format: "%+.0f%%", pct)
     }
 }
 
-// MARK: - History Row
+// MARK: - Stat Row
 
-private struct HistoryRow: View {
+private struct StatRow: View {
+    let title: String
+    let count: Int
+    let comparison: String
+    let compLabel: String
+    let usageFormat: String
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(title)
+                .font(.subheadline).foregroundStyle(.secondary)
+            Spacer()
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(String(format: usageFormat, count))
+                    .font(.body).fontWeight(.semibold)
+                Text("\(compLabel) \(comparison)")
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+// MARK: - History Item Row
+
+private struct HistoryItemRow: View {
     let item: WordHistoryItem
-    let L: LocalizationManager
     let onGenerate: () -> Void
+
+    private static let relFormatter: RelativeDateTimeFormatter = {
+        let f = RelativeDateTimeFormatter()
+        f.unitsStyle = .abbreviated
+        return f
+    }()
 
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.englishWord)
-                    .font(.body)
-                    .fontWeight(.medium)
+                    .font(.body).fontWeight(.medium)
                     .lineLimit(2)
-
-                Label {
-                    Text("\(item.generationCount)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } icon: {
-                    Image(systemName: "wand.and.sparkles")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
+                Text(Self.relFormatter.localizedString(for: item.timestamp, relativeTo: Date()))
+                    .font(.caption).foregroundStyle(.tertiary)
             }
             Spacer()
             Button(action: onGenerate) {
                 Image(systemName: "arrow.up.right.square.fill")
-                    .font(.title3)
-                    .foregroundStyle(.tint)
+                    .font(.title3).foregroundStyle(.tint)
             }
             .buttonStyle(.plain)
-            .help(L["history.generateButton"])
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 6)
+        .padding(.horizontal, 12)
+        .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10))
     }
 }
 
 #Preview {
-    HistoryView(onSelectWord: { _ in })
+    AnalyticsView(onSelectWord: { _ in })
         .environment(LocalizationManager.shared)
         .modelContainer(for: [WordHistoryItem.self, UsageRecord.self], inMemory: true)
 }

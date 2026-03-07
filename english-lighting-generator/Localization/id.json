@@ -1,54 +1,51 @@
 {
   "app.name": "AI Inggris",
-
   "unavailable.title": "Tidak Tersedia",
   "unavailable.osRequired": "Perlu macOS 26.0 atau lebih baru",
   "unavailable.aiUnavailable": "Apple Intelligence tidak tersedia",
-
   "input.wordLabel": "Kata",
   "input.wordPlaceholder": "e.g. technology, would like",
   "input.sentenceLengthLabel": "Panjang",
   "input.levelLabel": "Level",
-
   "button.generating": "Membuat...",
   "button.generate": "Buat kalimat",
   "button.hideJapanese": "Sembunyikan terjemahan",
   "button.showJapanese": "Tampilkan terjemahan",
-
   "output.englishLabel": "English",
   "output.japaneseLabel": "Terjemahan",
   "output.title": "Hasil",
-
   "error.refusalDetail": "Detail: ",
-
   "sentenceLength.short": "Pendek",
   "sentenceLength.normal": "Normal",
   "sentenceLength.long": "Panjang",
-
   "level.level1": "Lv.1",
   "level.level2": "Lv.2",
   "level.level3": "Lv.3",
   "level.level4": "Lv.4",
   "level.level5": "Lv.5",
-
   "level.level1.description": "A1 / TOEIC 300-",
   "level.level2.description": "A2 / TOEIC 300-500",
   "level.level3.description": "B1-B2 / TOEIC 500-650",
   "level.level4.description": "B2-C1 / TOEIC 650-800",
   "level.level5.description": "C1-C2 / TOEIC 800+",
-
-  "tab.aiSentence": "Kalimat AI",
-  "tab.history": "Riwayat",
-  "tab.quiz": "Kuis AI",
+  "tab.aiSentence": "Buat kalimat",
+  "tab.history": "Analisis",
+  "tab.quiz": "Urutkan",
   "tab.settings": "Pengaturan",
-
   "history.empty": "Belum ada riwayat",
-  "history.emptyDetail": "Buat kalimat di tab Kalimat AI dan riwayat akan muncul di sini.",
-  "history.generateButton": "Buat di Kalimat AI",
-
+  "history.emptyDetail": "Buat kalimat di tab Buat kalimat dan riwayat akan muncul di sini.",
+  "history.generateButton": "Buat di tab Buat kalimat",
+  "analytics.today": "Hari ini",
+  "analytics.week7": "7 hari",
+  "analytics.month28": "28 hari",
+  "analytics.vsYesterday": "vs kemarin",
+  "analytics.vsPrevious": "vs periode sebelumnya",
+  "analytics.usageFormat": "%d kali",
+  "analytics.historyTitle": "Catatan belajar",
   "quiz.generateButton": "Buat kuis",
   "quiz.prompt": "Siap untuk kuis",
   "quiz.promptDetail": "Ketuk \"Buat kuis\" untuk membuat latihan menyusun kata.",
+  "quiz.wordHintPlaceholder": "Opsional: petunjuk topik",
   "quiz.questionLabel": "Soal",
   "quiz.instruction": "Susun kata-kata berikut menjadi kalimat bahasa Inggris yang benar.",
   "quiz.bankLabel": "Kata-kata",
@@ -57,9 +54,9 @@
   "quiz.checkButton": "Periksa",
   "quiz.correct": "Benar!",
   "quiz.incorrect": "Salah",
+  "quiz.yourSentenceLabel": "Jawaban Anda",
   "quiz.correctSentenceLabel": "Kalimat yang benar",
   "quiz.explanationLabel": "Penjelasan",
-
   "settings.appVersion": "Versi",
   "settings.review": "Ulasan",
   "settings.reviewApp": "Beri ulasan",

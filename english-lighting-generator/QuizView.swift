@@ -20,11 +20,11 @@ struct WordOrderQuizOutput {
     @Guide(description: "The topic/domain of this sentence (e.g., 'workplace', 'travel', 'food', 'technology', 'daily life', 'sports', 'nature', 'relationships'). Used for topic diversity.")
     var topic: String
 
-    @Guide(description: "Brief explanation (1-2 sentences in English) of the key grammar point illustrated by this sentence.")
+    @Guide(description: "Brief explanation (1-2 sentences) of the key grammar point illustrated by this sentence. Write in the learner's native language as specified in the prompt.")
     var explanation: String
 
-    @Guide(description: "Natural Japanese translation of the sentence (自然な日本語). Not word-for-word.")
-    var japaneseTranslation: String
+    @Guide(description: "Natural translation of the sentence in the learner's native language. Not word-for-word.")
+    var translation: String
 }
 
 // MARK: - Word Token
@@ -39,9 +39,14 @@ struct WordToken: Identifiable, Equatable {
 @available(macOS 26.0, *)
 @Observable
 final class QuizViewModel {
+    var word: String = ""
+    var selectedLength: SentenceLength = .normal
+    var selectedLevel: EnglishLevel = .level1
+
     var quiz: WordOrderQuizOutput? = nil
     var bankTokens: [WordToken] = []
     var placedTokens: [WordToken] = []
+    var userSentence: String = ""
     var isChecked: Bool = false
     var isCorrect: Bool = false
     var isGenerating: Bool = false
@@ -65,96 +70,76 @@ final class QuizViewModel {
     }
 
     func checkAnswer(modelContext: ModelContext) {
-        let placed = placedTokens.map(\.word).joined(separator: " ")
-        isCorrect = placed == quiz?.correctSentence
+        userSentence = placedTokens.map(\.word).joined(separator: " ")
+        isCorrect = userSentence == quiz?.correctSentence
         withAnimation(.spring(duration: 0.3)) {
             isChecked = true
         }
-
-        let today = String.todayDateKey
-        let descriptor = FetchDescriptor<UsageRecord>(
-            predicate: #Predicate { $0.date == today }
-        )
-        if let record = try? modelContext.fetch(descriptor).first {
-            record.aiQuizCount += 1
-        } else {
-            let record = UsageRecord(date: today, aiSentenceCount: 0, aiQuizCount: 1)
-            modelContext.insert(record)
-        }
-        try? modelContext.save()
+        recordUsage(quiz: true, modelContext: modelContext)
     }
 
-    func generate(historyWords: [String]) {
+    func reset() {
+        quiz = nil
+        bankTokens = []
+        placedTokens = []
+        userSentence = ""
+        isChecked = false
+        isCorrect = false
+        errorMessage = ""
+    }
+
+    func generate() {
         Task { @MainActor in
             isGenerating = true
             errorMessage = ""
             quiz = nil
             bankTokens = []
             placedTokens = []
+            userSentence = ""
             isChecked = false
             isCorrect = false
 
-            let vocabContext: String
-            if historyWords.isEmpty {
-                vocabContext = "No history yet. Use common English vocabulary appropriate for intermediate learners."
-            } else {
-                let sample = historyWords.prefix(30).joined(separator: ", ")
-                vocabContext = "The learner has recently studied: \(sample)"
-            }
-
-            let levelHint: String
-            switch historyWords.count {
-            case 0..<5:   levelHint = "TOEIC under 300"
-            case 5..<15:  levelHint = "TOEIC 300–400"
-            case 15..<30: levelHint = "TOEIC 400–500"
-            default:      levelHint = "TOEIC 600–700"
-            }
+            let nativeLang = LocalizationManager.shared.nativeLanguageName
+            let wordHint = word.trimmingCharacters(in: .whitespaces)
+            let topicHint = wordHint.isEmpty ? "" : "\nTopic hint: incorporate \"\(wordHint)\" if natural."
 
             let topicConstraint: String
             if recentTopics.isEmpty {
-                topicConstraint = "Choose any topic from: workplace, travel, food, technology, daily life, sports, nature, relationships, education, health."
+                topicConstraint = "Choose any topic: workplace, travel, food, technology, daily life, sports, nature, relationships, education, health."
             } else {
                 let avoided = recentTopics.joined(separator: ", ")
                 topicConstraint = "Avoid recently used topics [\(avoided)]. Choose from: workplace, travel, food, technology, daily life, sports, nature, relationships, education, health."
             }
 
             let systemPrompt = """
-                You are an English language educator creating word-order practice sentences for Japanese learners.
+                You are an English language educator creating word-order practice sentences.
 
                 ## Task
                 Generate ONE natural English sentence for a word-order scramble exercise.
 
-                ## Learner profile
-                - Level: \(levelHint)
-                - \(vocabContext)
+                ## Level
+                \(selectedLevel.quizGrammarHint)
 
                 ## Sentence requirements
-                - Must be grammatically correct and completely natural
-                - Length: 6–12 words (short enough to rearrange, long enough to be educational)
-                - \(topicConstraint)
-                - Target grammar appropriate for the learner's level
-                  (e.g., TOEIC <300: simple present; 400–500: passive voice, relative clauses; 600–700: conditionals, advanced modals)
-                - Avoid trivially simple sentences that require no grammar knowledge
+                - Grammatically correct and completely natural
+                - \(topicConstraint)\(topicHint)
                 - Do NOT use contractions or parenthetical clauses
 
                 ## Output fields
                 - correctSentence: the complete, correct English sentence
                 - topic: subject domain (e.g. workplace, travel, food)
-                - explanation: brief explanation of the key grammar point (1–2 sentences, in English)
-                - japaneseTranslation: natural Japanese translation (idiomatic, not word-for-word)
+                - explanation: key grammar point in \(nativeLang) (1–2 sentences)
+                - translation: natural \(nativeLang) translation (idiomatic, not word-for-word)
                 """
-
-            let userPrompt = "Generate one word-order quiz sentence now."
 
             let session = LanguageModelSession(instructions: systemPrompt)
             do {
                 let response = try await session.respond(
-                    to: userPrompt,
+                    to: "Generate one word-order quiz sentence now.",
                     generating: WordOrderQuizOutput.self
                 )
                 let output = response.content
 
-                // Validate word count (6–12)
                 let words = output.correctSentence
                     .components(separatedBy: " ")
                     .filter { !$0.isEmpty }
@@ -165,7 +150,6 @@ final class QuizViewModel {
                     )
                 }
 
-                // Shuffle on Swift side; guarantee result differs from original
                 var shuffled = words.shuffled()
                 var attempts = 0
                 while shuffled == words && words.count > 1 && attempts < 10 {
@@ -192,7 +176,7 @@ final class QuizViewModel {
             } catch {
                 if (error as NSError).domain == "QuizValidation" {
                     await Task.yield()
-                    generate(historyWords: historyWords)
+                    generate()
                     return
                 }
                 errorMessage = error.localizedDescription
@@ -206,23 +190,18 @@ final class QuizViewModel {
 // MARK: - Quiz View (Root)
 
 struct QuizView: View {
-    @Environment(LocalizationManager.self) private var L
-
     var body: some View {
-        NavigationStack {
-            Group {
-                if #available(macOS 26.0, *) {
-                    switch SystemLanguageModel.default.availability {
-                    case .available:
-                        QuizContentView()
-                    default:
-                        UnavailableView(reasonKey: "unavailable.aiUnavailable")
-                    }
-                } else {
-                    UnavailableView(reasonKey: "unavailable.osRequired")
+        Group {
+            if #available(macOS 26.0, *) {
+                switch SystemLanguageModel.default.availability {
+                case .available:
+                    QuizContentView()
+                default:
+                    UnavailableView(reasonKey: "unavailable.aiUnavailable")
                 }
+            } else {
+                UnavailableView(reasonKey: "unavailable.osRequired")
             }
-            .navigationTitle(L["tab.quiz"])
         }
     }
 }
@@ -234,73 +213,141 @@ private struct QuizContentView: View {
     @Environment(LocalizationManager.self) private var L
     @Environment(\.modelContext) private var modelContext
 
-    @Query(sort: \WordHistoryItem.date, order: .reverse)
-    private var historyItems: [WordHistoryItem]
-
     @State private var viewModel = QuizViewModel()
-
-    private var historyWords: [String] { historyItems.map(\.englishWord) }
+    @State private var isInputVisible = true
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 20) {
+            VStack(alignment: .leading, spacing: 20) {
 
-                // ── Generate Button ───────────────────────────────────────
-                Button(action: { viewModel.generate(historyWords: historyWords) }) {
-                    HStack {
-                        if viewModel.isGenerating {
-                            ProgressView().controlSize(.small).padding(.trailing, 4)
-                            Text(L["button.generating"])
-                        } else {
-                            Image(systemName: "dice.fill")
-                            Text(L["quiz.generateButton"])
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 4)
+                if isInputVisible {
+                    inputSection
+                        .transition(.move(edge: .top).combined(with: .opacity))
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .disabled(viewModel.isGenerating)
 
-                // ── Error ─────────────────────────────────────────────────
                 if !viewModel.errorMessage.isEmpty {
-                    HStack(alignment: .top, spacing: 8) {
-                        Image(systemName: "exclamationmark.circle.fill").foregroundStyle(.red)
-                        Text(viewModel.errorMessage)
-                            .font(.subheadline).foregroundStyle(.red)
-                    }
-                    .padding(12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.red.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+                    errorView
                 }
 
-                // ── Word Order Card ───────────────────────────────────────
+                if viewModel.isGenerating && !isInputVisible {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 40)
+                        .transition(.opacity)
+                }
+
                 if viewModel.quiz != nil {
-                    WordOrderCard(viewModel: viewModel, L: L, modelContext: modelContext)
+                    WordOrderCard(viewModel: viewModel, modelContext: modelContext)
                         .transition(.asymmetric(
                             insertion: .opacity.combined(with: .move(edge: .bottom)),
                             removal: .opacity
                         ))
-                } else if !viewModel.isGenerating {
-                    VStack(spacing: 14) {
-                        Image(systemName: "text.word.spacing")
-                            .font(.system(size: 52))
-                            .foregroundStyle(.tint)
-                        Text(L["quiz.prompt"])
-                            .font(.headline).foregroundStyle(.secondary)
-                        Text(L["quiz.promptDetail"])
-                            .font(.subheadline).foregroundStyle(.tertiary)
-                            .multilineTextAlignment(.center)
+
+                    if viewModel.isChecked {
+                        ActionButtonsView(
+                            onReset: {
+                                viewModel.reset()
+                                withAnimation(.spring(duration: 0.45)) { isInputVisible = true }
+                            },
+                            onRegenerate: {
+                                viewModel.reset()
+                                viewModel.generate()
+                            }
+                        )
+                        .transition(.opacity)
                     }
-                    .padding(.top, 40)
+                } else if !viewModel.isGenerating && isInputVisible {
+                    promptPlaceholder
                 }
             }
-            .padding()
+            .padding([.horizontal, .bottom])
+            .padding(.top, 5)
+            .animation(.spring(duration: 0.45), value: isInputVisible)
             .animation(.spring(duration: 0.45), value: viewModel.quiz?.correctSentence)
+            .animation(.spring(duration: 0.3), value: viewModel.isChecked)
             .animation(.easeInOut(duration: 0.25), value: viewModel.errorMessage)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onChange(of: viewModel.quiz?.correctSentence) { _, sentence in
+            if sentence != nil {
+                withAnimation(.spring(duration: 0.45)) { isInputVisible = false }
+            }
+        }
+    }
+
+    private var inputSection: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            GroupBox {
+                VStack(alignment: .leading, spacing: 16) {
+                    FormSection(title: L["input.wordLabel"]) {
+                        TextField(L["quiz.wordHintPlaceholder"], text: $viewModel.word)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    Divider()
+                    FormSection(title: L["input.sentenceLengthLabel"]) {
+                        Picker(L["input.sentenceLengthLabel"], selection: $viewModel.selectedLength) {
+                            ForEach(SentenceLength.allCases) { length in
+                                Text(L[length.rawValue]).tag(length)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                    }
+                    Divider()
+                    FormSection(title: L["input.levelLabel"], badge: L[viewModel.selectedLevel.descriptionKey]) {
+                        Picker(L["input.levelLabel"], selection: $viewModel.selectedLevel) {
+                            ForEach(EnglishLevel.allCases) { level in
+                                Text(L[level.rawValue]).tag(level)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                    }
+                }
+                .padding(4)
+            }
+
+            Button(action: { viewModel.generate() }) {
+                HStack {
+                    if viewModel.isGenerating {
+                        ProgressView().controlSize(.small).padding(.trailing, 4)
+                        Text(L["button.generating"])
+                    } else {
+                        Image(systemName: "dice.fill")
+                        Text(L["quiz.generateButton"])
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 4)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .disabled(viewModel.isGenerating)
+        }
+    }
+
+    private var errorView: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "exclamationmark.circle.fill").foregroundStyle(.red)
+            Text(viewModel.errorMessage)
+                .font(.subheadline).foregroundStyle(.red)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.red.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var promptPlaceholder: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "text.word.spacing")
+                .font(.system(size: 52))
+                .foregroundStyle(.tint)
+            Text(L["quiz.prompt"])
+                .font(.headline).foregroundStyle(.secondary)
+            Text(L["quiz.promptDetail"])
+                .font(.subheadline).foregroundStyle(.tertiary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.top, 20)
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -309,23 +356,29 @@ private struct QuizContentView: View {
 @available(macOS 26.0, *)
 private struct WordOrderCard: View {
     let viewModel: QuizViewModel
-    let L: LocalizationManager
     let modelContext: ModelContext
+
+    @Environment(LocalizationManager.self) private var L
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
 
-            // ── Instruction ───────────────────────────────────────────────
-            GroupBox {
-                VStack(alignment: .leading, spacing: 8) {
-                    Label(L["quiz.questionLabel"], systemImage: "text.word.spacing")
-                        .font(.subheadline).fontWeight(.semibold)
-                        .foregroundStyle(.tint)
-                    Text(L["quiz.instruction"])
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+            // ── Question (translation as prompt) ──────────────────────────
+            if let quiz = viewModel.quiz {
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label(L["quiz.questionLabel"], systemImage: "text.word.spacing")
+                            .font(.subheadline).fontWeight(.semibold)
+                            .foregroundStyle(.tint)
+                        Text(quiz.translation)
+                            .font(.body)
+                            .textSelection(.enabled)
+                        Text(L["quiz.instruction"])
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(4)
                 }
-                .padding(4)
             }
 
             // ── Word Bank ─────────────────────────────────────────────────
@@ -336,14 +389,8 @@ private struct WordOrderCard: View {
                         .foregroundStyle(.secondary)
                     WrapLayout(spacing: 8) {
                         ForEach(viewModel.bankTokens) { token in
-                            WordChip(
-                                word: token.word,
-                                isPlaced: false,
-                                isDisabled: viewModel.isChecked
-                            ) {
-                                withAnimation(.spring(duration: 0.2)) {
-                                    viewModel.tapBank(token)
-                                }
+                            WordChip(word: token.word, isPlaced: false, isDisabled: viewModel.isChecked) {
+                                withAnimation(.spring(duration: 0.2)) { viewModel.tapBank(token) }
                             }
                         }
                     }
@@ -365,29 +412,20 @@ private struct WordOrderCard: View {
                                 RoundedRectangle(cornerRadius: 8)
                                     .stroke(
                                         viewModel.isChecked
-                                            ? (viewModel.isCorrect
-                                                ? Color.green.opacity(0.5)
-                                                : Color.red.opacity(0.5))
+                                            ? (viewModel.isCorrect ? Color.green.opacity(0.5) : Color.red.opacity(0.5))
                                             : Color.primary.opacity(0.12),
                                         lineWidth: 1.5
                                     )
                             )
                         if viewModel.placedTokens.isEmpty {
                             Text(L["quiz.answerPlaceholder"])
-                                .font(.subheadline)
-                                .foregroundStyle(.tertiary)
+                                .font(.subheadline).foregroundStyle(.tertiary)
                                 .padding(10)
                         } else {
                             WrapLayout(spacing: 8) {
                                 ForEach(viewModel.placedTokens) { token in
-                                    WordChip(
-                                        word: token.word,
-                                        isPlaced: true,
-                                        isDisabled: viewModel.isChecked
-                                    ) {
-                                        withAnimation(.spring(duration: 0.2)) {
-                                            viewModel.tapPlaced(token)
-                                        }
+                                    WordChip(word: token.word, isPlaced: true, isDisabled: viewModel.isChecked) {
+                                        withAnimation(.spring(duration: 0.2)) { viewModel.tapPlaced(token) }
                                     }
                                 }
                             }
@@ -413,7 +451,7 @@ private struct WordOrderCard: View {
 
             // ── Result ────────────────────────────────────────────────────
             if viewModel.isChecked, let quiz = viewModel.quiz {
-                ResultSection(quiz: quiz, isCorrect: viewModel.isCorrect, L: L)
+                ResultSection(quiz: quiz, userSentence: viewModel.userSentence, isCorrect: viewModel.isCorrect)
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
         }
@@ -428,13 +466,15 @@ private struct WordOrderCard: View {
 @available(macOS 26.0, *)
 private struct ResultSection: View {
     let quiz: WordOrderQuizOutput
+    let userSentence: String
     let isCorrect: Bool
-    let L: LocalizationManager
+
+    @Environment(LocalizationManager.self) private var L
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
 
-            // Correct / Incorrect badge
+            // Badge
             HStack(spacing: 8) {
                 Image(systemName: isCorrect ? "checkmark.circle.fill" : "xmark.circle.fill")
                     .font(.title2)
@@ -444,19 +484,32 @@ private struct ResultSection: View {
                     .foregroundStyle(isCorrect ? .green : .red)
             }
 
-            // Show correct sentence only when wrong
-            if !isCorrect {
-                GroupBox {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(L["quiz.correctSentenceLabel"])
-                            .font(.caption).fontWeight(.semibold)
-                            .foregroundStyle(.secondary)
-                        Text(quiz.correctSentence)
-                            .font(.body)
-                            .textSelection(.enabled)
-                    }
-                    .padding(4)
+            // User's sentence
+            GroupBox {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(L["quiz.yourSentenceLabel"])
+                        .font(.caption).fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                    Text(userSentence)
+                        .font(.body)
+                        .textSelection(.enabled)
+                        .foregroundStyle(isCorrect ? .primary : .red.opacity(0.8))
                 }
+                .padding(4)
+            }
+
+            // Correct sentence (always shown)
+            GroupBox {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(L["quiz.correctSentenceLabel"])
+                        .font(.caption).fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                    Text(quiz.correctSentence)
+                        .font(.body)
+                        .textSelection(.enabled)
+                        .foregroundStyle(.green.opacity(0.9))
+                }
+                .padding(4)
             }
 
             // Explanation
@@ -466,21 +519,7 @@ private struct ResultSection: View {
                         .font(.subheadline).fontWeight(.semibold)
                         .foregroundStyle(.yellow)
                     Text(quiz.explanation)
-                        .font(.subheadline)
-                        .foregroundStyle(.primary)
-                }
-                .padding(4)
-            }
-
-            // Japanese translation
-            GroupBox {
-                VStack(alignment: .leading, spacing: 6) {
-                    Label(L["output.japaneseLabel"], systemImage: "j.circle.fill")
-                        .font(.subheadline).fontWeight(.semibold)
-                        .foregroundStyle(.orange)
-                    Text(quiz.japaneseTranslation)
-                        .font(.subheadline)
-                        .textSelection(.enabled)
+                        .font(.subheadline).textSelection(.enabled)
                 }
                 .padding(4)
             }

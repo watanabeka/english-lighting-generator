@@ -1,50 +1,22 @@
-//
-//  Models.swift
-//  english-lighting-generator
-//
-//  Created by 渡辺 海星 on 2026/02/24.
-//
-
 import Foundation
 import SwiftData
 
-// MARK: - Word History Item
-//
-// Stores one entry per word/phrase the user submitted.
-// `date` is a "yyyy-MM-dd" string so all generations on the same
-// calendar day share the same value and can be grouped easily.
-// `englishWord` always holds the English form (the app normalises
-// katakana / other-language input before saving).
-// `generationCount` is incremented each time the user taps Generate
-// for this word on the same day.
-
 @Model
 final class WordHistoryItem {
-    var date: String = ""           // "yyyy-MM-dd"
-    var englishWord: String = ""    // normalised English word / phrase
-    var generationCount: Int = 0
-    var compositeKey: String = ""   // app-side uniqueness key
+    var date: String = ""
+    var englishWord: String = ""
+    var timestamp: Date = Date()
 
-    init(date: String, englishWord: String, generationCount: Int = 1) {
+    init(date: String, englishWord: String) {
         self.date = date
         self.englishWord = englishWord
-        self.generationCount = generationCount
-        self.compositeKey = "\(date)|\(englishWord)"
+        self.timestamp = Date()
     }
 }
 
-// MARK: - Usage Record
-//
-// One record per calendar day, keyed by `date` ("yyyy-MM-dd").
-// Tracks how many times each AI feature was invoked that day.
-// Used for future subscription throttling.
-//
-// • `aiSentenceCount`  – taps of "Generate sentence" in the AI Sentence tab
-// • `aiQuizCount`      – quiz generations in the AI Quiz tab
-
 @Model
 final class UsageRecord {
-    var date: String = ""  // "yyyy-MM-dd" - one record per day
+    var date: String = ""
     var aiSentenceCount: Int = 0
     var aiQuizCount: Int = 0
 
@@ -55,14 +27,35 @@ final class UsageRecord {
     }
 }
 
-// MARK: - Date Helpers
-
 extension String {
-    /// Returns today's date as a "yyyy-MM-dd" string.
-    static var todayDateKey: String {
+    static var todayDateKey: String { dateKey(daysAgo: 0) }
+
+    static func dateKey(daysAgo: Int) -> String {
+        let date = Calendar.current.date(byAdding: .day, value: -daysAgo, to: Date()) ?? Date()
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
         f.locale = Locale(identifier: "en_US_POSIX")
-        return f.string(from: Date())
+        return f.string(from: date)
     }
+}
+
+func recordUsage(sentence: Bool = false, quiz: Bool = false, modelContext: ModelContext) {
+    let today = String.todayDateKey
+    let descriptor = FetchDescriptor<UsageRecord>(predicate: #Predicate { $0.date == today })
+    if let record = try? modelContext.fetch(descriptor).first {
+        if sentence { record.aiSentenceCount += 1 }
+        if quiz     { record.aiQuizCount     += 1 }
+    } else {
+        modelContext.insert(UsageRecord(
+            date: today,
+            aiSentenceCount: sentence ? 1 : 0,
+            aiQuizCount:     quiz     ? 1 : 0
+        ))
+    }
+    try? modelContext.save()
+}
+
+func saveWordHistory(_ word: String, modelContext: ModelContext) {
+    modelContext.insert(WordHistoryItem(date: String.todayDateKey, englishWord: word))
+    try? modelContext.save()
 }

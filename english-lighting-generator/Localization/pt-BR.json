@@ -1,54 +1,51 @@
 {
   "app.name": "AI Inglês",
-
   "unavailable.title": "Indisponível",
   "unavailable.osRequired": "Requer macOS 26.0 ou posterior",
   "unavailable.aiUnavailable": "Apple Intelligence indisponível",
-
   "input.wordLabel": "Palavra",
   "input.wordPlaceholder": "e.g. technology, would like",
   "input.sentenceLengthLabel": "Tamanho",
   "input.levelLabel": "Nível",
-
   "button.generating": "Gerando...",
   "button.generate": "Gerar frase",
   "button.hideJapanese": "Ocultar tradução",
   "button.showJapanese": "Ver tradução",
-
   "output.englishLabel": "English",
   "output.japaneseLabel": "Tradução",
   "output.title": "Resultado",
-
   "error.refusalDetail": "Detalhes: ",
-
   "sentenceLength.short": "Curta",
   "sentenceLength.normal": "Normal",
   "sentenceLength.long": "Longa",
-
   "level.level1": "Lv.1",
   "level.level2": "Lv.2",
   "level.level3": "Lv.3",
   "level.level4": "Lv.4",
   "level.level5": "Lv.5",
-
   "level.level1.description": "A1 / TOEIC 300-",
   "level.level2.description": "A2 / TOEIC 300-500",
   "level.level3.description": "B1-B2 / TOEIC 500-650",
   "level.level4.description": "B2-C1 / TOEIC 650-800",
   "level.level5.description": "C1-C2 / TOEIC 800+",
-
-  "tab.aiSentence": "Frases AI",
-  "tab.history": "Histórico",
-  "tab.quiz": "Quiz AI",
+  "tab.aiSentence": "Criar frase",
+  "tab.history": "Análise",
+  "tab.quiz": "Ordenar",
   "tab.settings": "Ajustes",
-
   "history.empty": "Sem histórico",
-  "history.emptyDetail": "Gere frases na aba Frases AI e o histórico aparecerá aqui.",
-  "history.generateButton": "Gerar na aba Frases AI",
-
+  "history.emptyDetail": "Gere frases na aba Criar frase e o histórico aparecerá aqui.",
+  "history.generateButton": "Gerar na aba Criar frase",
+  "analytics.today": "Hoje",
+  "analytics.week7": "7 dias",
+  "analytics.month28": "28 dias",
+  "analytics.vsYesterday": "vs ontem",
+  "analytics.vsPrevious": "vs período anterior",
+  "analytics.usageFormat": "%d vezes",
+  "analytics.historyTitle": "Registro de estudo",
   "quiz.generateButton": "Gerar quiz",
   "quiz.prompt": "Pronto para o quiz",
   "quiz.promptDetail": "Toque em \"Gerar quiz\" para criar um exercício de ordenação de palavras.",
+  "quiz.wordHintPlaceholder": "Opcional: dica de tópico",
   "quiz.questionLabel": "Questão",
   "quiz.instruction": "Ordene as palavras para formar uma frase correta em inglês.",
   "quiz.bankLabel": "Palavras",
@@ -57,9 +54,9 @@
   "quiz.checkButton": "Verificar",
   "quiz.correct": "Correto!",
   "quiz.incorrect": "Incorreto",
+  "quiz.yourSentenceLabel": "Sua resposta",
   "quiz.correctSentenceLabel": "Frase correta",
   "quiz.explanationLabel": "Explicação",
-
   "settings.appVersion": "Versão",
   "settings.review": "Avaliação",
   "settings.reviewApp": "Avaliar app",
