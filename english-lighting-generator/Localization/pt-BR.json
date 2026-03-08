@@ -61,5 +61,6 @@
   "settings.review": "Avaliação",
   "settings.reviewApp": "Avaliar app",
   "settings.displayLanguage": "Idioma",
-  "analytics.historyLabel": "Histórico de estudo"
+  "analytics.historyLabel": "Histórico de estudo",
+  "quiz.searchButton": "Pesquisar Detalhes"
 }

@@ -61,5 +61,6 @@
   "settings.review": "Ulasan",
   "settings.reviewApp": "Beri ulasan",
   "settings.displayLanguage": "Bahasa",
-  "analytics.historyLabel": "Riwayat belajar"
+  "analytics.historyLabel": "Riwayat belajar",
+  "quiz.searchButton": "Cari Detail"
 }

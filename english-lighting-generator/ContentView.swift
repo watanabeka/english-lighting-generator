@@ -17,11 +17,16 @@ struct SentenceOutput {
     @Guide(description: "A single, grammatically correct English sentence that a native speaker would naturally write or say. The target word must be used meaningfully in context.")
     var englishSentence: String
 
-    @Guide(description: "Natural, fluent translation of the English sentence in the learner's native language. Not word-for-word. Match register (casual or formal).")
-    var translation: String
-
-    @Guide(description: "The normalised English form of the input. For multiple comma-separated inputs, return them comma-separated in the same order. Convert katakana, hiragana, romaji, or misspelled input to correct English. If already correct English, return unchanged.")
+    @Guide(description: "The normalised English form of the input in English. For multiple comma-separated inputs, return them comma-separated in the same order. Convert katakana, hiragana, romaji, or misspelled input to correct English. If already correct English, return unchanged.")
     var normalisedEnglishWord: String
+}
+
+// Simple translation output
+@available(macOS 26.0, *)
+@Generable
+struct SimpleTranslation {
+    @Guide(description: "The translated text in the target language.")
+    var translation: String
 }
 
 // MARK: - Sentence Length
@@ -43,9 +48,9 @@ enum SentenceLength: String, CaseIterable, Identifiable {
 
     var instruction: String {
         switch self {
-        case .short:  return "Keep the sentence short and concise (approximately 8-12 words)."
-        case .normal: return "Write a sentence of moderate length (approximately 18-25 words)."
-        case .long:   return "Write a longer, more detailed sentence (approximately 35-50 words)."
+        case .short:  return "8-12 words"
+        case .normal: return "18-25 words"
+        case .long:   return "35-50 words"
         }
     }
 }
@@ -201,44 +206,47 @@ class AppViewModel {
             let nativeLang = LocalizationManager.shared.nativeLanguageName
 
             let systemPrompt = """
-                You are an expert English educator creating example sentences for Japanese learners.
+                Create an English example sentence.
 
-                ## Output fields (return ALL three, always)
-                - englishSentence: the generated sentence
-                - translation: natural \(nativeLang) translation (idiomatic, register-matched)
-                - normalisedEnglishWord: the standard English form of the user\'s raw input
-                  (katakana/hiragana/romaji → convert to English; already English → return unchanged;
-                   multiple inputs → return comma-separated normalised forms in the same order)
+                Level \(level.englishName.replacingOccurrences(of: "Level ", with: "")): \(level.englishDescription)
+                Length: \(sentenceLength.instruction)
 
-                ## Target word rules
-                - Use ALL provided target words/phrases exactly once, meaningfully integrated
-                - If multiple words feel forced together, prioritise naturalness over mechanical inclusion
-                - Correct typos/non-English input silently; reflect correction in normalisedEnglishWord
-
-                ## Level: \(level.englishName) — \(level.englishDescription)
-                \(level.instruction)
-
-                ## Sentence length: \(sentenceLength.englishName)
-                \(sentenceLength.instruction)
-
-                ## Quality
-                - Native-speaker naturalness is the highest priority
-                - Vocabulary and grammar must feel distinctly appropriate for the level
-                - Translation: never word-for-word; use idiomatic phrasing; match English register
+                Use target word(s) naturally. Return: englishSentence, normalisedEnglishWord.
                 """
-
-            let userPrompt = "Target: \"\(word)\"\nGenerate now."
 
             let session = LanguageModelSession(instructions: systemPrompt)
             do {
+                // Step 1: Generate English sentence
                 let response = try await session.respond(
-                    to: userPrompt,
+                    to: "Target: \"\(word)\"",
                     generating: SentenceOutput.self
                 )
                 let content = response.content
+
+                // Check if input word is included in the generated sentence
+                let inputWords = word.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
+                let sentenceLower = content.englishSentence.lowercased()
+                let allWordsIncluded = inputWords.allSatisfy { inputWord in
+                    !inputWord.isEmpty && sentenceLower.contains(inputWord)
+                }
+
+                guard allWordsIncluded else {
+                    // Retry generation if input word(s) not found
+                    generate(modelContext: modelContext)
+                    return
+                }
+
+                // Step 2: Translate to native language
+                let translationSession = LanguageModelSession(instructions: "Translate English to \(nativeLang).")
+                let translationResponse = try await translationSession.respond(
+                    to: content.englishSentence,
+                    generating: SimpleTranslation.self
+                )
+                let translated = translationResponse.content
+
                 withAnimation(.spring(duration: 0.5)) {
                     englishResult = content.englishSentence
-                    translationResult = content.translation
+                    translationResult = translated.translation
                 }
 
                 let normWord = content.normalisedEnglishWord.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -466,14 +474,14 @@ struct GeneratorView: View {
                 ResultCard(
                     label: L["output.englishLabel"],
                     systemImage: "globe",
-                    color: .tint,
+                    color: .blue,
                     text: viewModel.englishResult
                 )
                 if viewModel.isTranslationVisible {
                     ResultCard(
                         label: L["output.japaneseLabel"],
                         systemImage: "character.bubble",
-                        color: .tint,
+                        color: .orange,
                         text: viewModel.translationResult
                     )
                     .transition(.opacity.combined(with: .move(edge: .bottom)))

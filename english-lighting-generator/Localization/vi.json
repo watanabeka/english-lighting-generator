@@ -61,5 +61,6 @@
   "settings.review": "Đánh giá",
   "settings.reviewApp": "Đánh giá app",
   "settings.displayLanguage": "Ngôn ngữ",
-  "analytics.historyLabel": "Lịch sử học tập"
+  "analytics.historyLabel": "Lịch sử học tập",
+  "quiz.searchButton": "Tìm Chi Tiết"
 }

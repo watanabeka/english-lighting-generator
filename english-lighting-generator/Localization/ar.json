@@ -61,5 +61,6 @@
   "settings.review": "تقييم",
   "settings.reviewApp": "قيّم التطبيق",
   "settings.displayLanguage": "اللغة",
-  "analytics.historyLabel": "سجل الدراسة"
+  "analytics.historyLabel": "سجل الدراسة",
+  "quiz.searchButton": "ابحث عن التفاصيل"
 }

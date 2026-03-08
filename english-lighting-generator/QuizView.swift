@@ -17,13 +17,21 @@ struct WordOrderQuizOutput {
     @Guide(description: "A grammatically correct, natural English sentence for a word-order scramble exercise. Must be 6 to 12 words long. No contractions, no parentheses.")
     var correctSentence: String
 
-    @Guide(description: "The topic/domain of this sentence (e.g., 'workplace', 'travel', 'food', 'technology', 'daily life', 'sports', 'nature', 'relationships'). Used for topic diversity.")
+    @Guide(description: "The topic/domain of this sentence in English (e.g., 'workplace', 'travel', 'food', 'technology', 'daily life', 'sports', 'nature', 'relationships').")
     var topic: String
 
-    @Guide(description: "Brief explanation (1-2 sentences) of the key grammar point illustrated by this sentence. Write in the learner's native language as specified in the prompt.")
-    var explanation: String
+    @Guide(description: "Brief explanation (1-2 sentences) in English of the key grammar point illustrated by this sentence.")
+    var explanationEnglish: String
 
-    @Guide(description: "Natural translation of the sentence in the learner's native language. Not word-for-word.")
+    @Guide(description: "Natural translation of the sentence in English.")
+    var translationEnglish: String
+}
+
+// Translation output
+@available(macOS 26.0, *)
+@Generable
+struct TranslationOutput {
+    @Guide(description: "The translated sentence in the target language.")
     var translation: String
 }
 
@@ -44,6 +52,7 @@ final class QuizViewModel {
     var selectedLevel: EnglishLevel = .level1
 
     var quiz: WordOrderQuizOutput? = nil
+    var translation: String = ""  // Translated sentence
     var bankTokens: [WordToken] = []
     var placedTokens: [WordToken] = []
     var userSentence: String = ""
@@ -76,10 +85,17 @@ final class QuizViewModel {
             isChecked = true
         }
         recordUsage(quiz: true, modelContext: modelContext)
+
+        // Save the input word to history if specified
+        let wordToSave = word.trimmingCharacters(in: .whitespaces)
+        if !wordToSave.isEmpty {
+            saveWordHistory(wordToSave, modelContext: modelContext)
+        }
     }
 
     func reset() {
         quiz = nil
+        translation = ""
         bankTokens = []
         placedTokens = []
         userSentence = ""
@@ -105,44 +121,42 @@ final class QuizViewModel {
 
             let topicConstraint: String
             if recentTopics.isEmpty {
-                topicConstraint = "Choose any topic: workplace, travel, food, technology, daily life, sports, nature, relationships, education, health."
+                topicConstraint = "any topic"
             } else {
                 let avoided = recentTopics.joined(separator: ", ")
-                topicConstraint = "Avoid recently used topics [\(avoided)]. Choose from: workplace, travel, food, technology, daily life, sports, nature, relationships, education, health."
+                topicConstraint = "avoid [\(avoided)]"
             }
 
             let systemPrompt = """
-                You are an English language educator creating word-order practice sentences.
+                Create a word-order scramble sentence in English.
 
-                ## CRITICAL: Language requirement
-                The fields `explanation` and `translation` MUST be written entirely in \(nativeLang).
-                Do NOT write them in English or any other language. This is mandatory.
+                Level: \(selectedLevel.quizGrammarHint)
+                Topic: \(topicConstraint)\(topicHint)
+                No contractions. 6-12 words.
 
-                ## Task
-                Generate ONE natural English sentence for a word-order scramble exercise.
-
-                ## Level
-                \(selectedLevel.quizGrammarHint)
-
-                ## Sentence requirements
-                - Grammatically correct and completely natural
-                - \(topicConstraint)\(topicHint)
-                - Do NOT use contractions or parenthetical clauses
-
-                ## Output fields
-                - correctSentence: the complete, correct English sentence
-                - topic: subject domain (e.g. workplace, travel, food)
-                - explanation: key grammar point (1–2 sentences) in \(nativeLang) — NOT in English
-                - translation: natural translation of the sentence in \(nativeLang) — NOT in English
+                Return: correctSentence, topic, explanationEnglish (grammar explanation in English), translationEnglish (natural English translation).
                 """
 
             let session = LanguageModelSession(instructions: systemPrompt)
             do {
+                // Step 1: Generate in English
                 let response = try await session.respond(
-                    to: "Generate one word-order quiz sentence now.",
+                    to: "Generate now.",
                     generating: WordOrderQuizOutput.self
                 )
                 let output = response.content
+
+                // Check if input word is included when specified
+                if !wordHint.isEmpty {
+                    let sentenceLower = output.correctSentence.lowercased()
+                    let wordLower = wordHint.lowercased()
+                    guard sentenceLower.contains(wordLower) else {
+                        throw NSError(
+                            domain: "QuizValidation", code: 3,
+                            userInfo: [NSLocalizedDescriptionKey: "Input word '\(wordHint)' not found in sentence"]
+                        )
+                    }
+                }
 
                 let words = output.correctSentence
                     .components(separatedBy: " ")
@@ -165,8 +179,18 @@ final class QuizViewModel {
                 if recentTopics.count > maxRecentTracking { recentTopics.removeFirst() }
 
                 let tokens = shuffled.enumerated().map { WordToken(id: $0.offset, word: $0.element) }
+
+                // Step 2: Translate sentence to native language
+                let translationSession = LanguageModelSession(instructions: "Translate English to \(nativeLang).")
+                let translationResponse = try await translationSession.respond(
+                    to: output.translationEnglish,
+                    generating: TranslationOutput.self
+                )
+                let translated = translationResponse.content
+
                 withAnimation(.spring(duration: 0.4)) {
                     quiz = output
+                    translation = translated.translation
                     bankTokens = tokens
                 }
             } catch LanguageModelSession.GenerationError.refusal(let refusal, _) {
@@ -323,7 +347,10 @@ private struct QuizContentView: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
-            .disabled(viewModel.isGenerating)
+            .disabled(
+                viewModel.word.trimmingCharacters(in: .whitespaces).isEmpty
+                || viewModel.isGenerating
+            )
         }
     }
 
@@ -367,13 +394,13 @@ private struct WordOrderCard: View {
         VStack(alignment: .leading, spacing: 16) {
 
             // ── Question (translation as prompt) ──────────────────────────
-            if let quiz = viewModel.quiz {
+            if viewModel.quiz != nil {
                 GroupBox {
                     VStack(alignment: .leading, spacing: 8) {
                         Label(L["quiz.questionLabel"], systemImage: "text.word.spacing")
                             .font(.subheadline).fontWeight(.semibold)
                             .foregroundStyle(.tint)
-                        Text(quiz.translation)
+                        Text(viewModel.translation)
                             .font(.body)
                             .textSelection(.enabled)
                         Text(L["quiz.instruction"])
@@ -450,7 +477,7 @@ private struct WordOrderCard: View {
 
             // ── Result ────────────────────────────────────────────────────
             if viewModel.isChecked, let quiz = viewModel.quiz {
-                ResultSection(quiz: quiz, userSentence: viewModel.userSentence, isCorrect: viewModel.isCorrect)
+                ResultSection(quiz: quiz, userSentence: viewModel.userSentence, isCorrect: viewModel.isCorrect, translation: viewModel.translation)
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
         }
@@ -467,12 +494,31 @@ private struct ResultSection: View {
     let quiz: WordOrderQuizOutput
     let userSentence: String
     let isCorrect: Bool
+    let translation: String
 
     @Environment(LocalizationManager.self) private var L
 
     private var accentColor: Color { isCorrect ? .green : .red }
     private var badgeIcon: String { isCorrect ? "checkmark.circle.fill" : "xmark.circle.fill" }
     private var userSentenceColor: Color { isCorrect ? .primary : Color.red.opacity(0.8) }
+
+    private func searchInSafari() {
+        let query = """
+            問題文: \(translation)
+            自分の回答: \(userSentence)
+            正答: \(quiz.correctSentence)
+            この問題を解説、ポイントを教えてください
+            """
+
+        if let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+           let url = URL(string: "https://www.google.com/search?q=\(encoded)&udm=50") {
+            #if os(iOS)
+            UIApplication.shared.open(url)
+            #elseif os(macOS)
+            NSWorkspace.shared.open(url)
+            #endif
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -515,17 +561,20 @@ private struct ResultSection: View {
                 .padding(4)
             }
 
-            // Explanation
-            GroupBox {
-                VStack(alignment: .leading, spacing: 6) {
-                    Label(L["quiz.explanationLabel"], systemImage: "lightbulb.fill")
-                        .font(.subheadline).fontWeight(.semibold)
-                        .foregroundStyle(.yellow)
-                    Text(quiz.explanation)
-                        .font(.subheadline).textSelection(.enabled)
+            // Search button
+            Button(action: {
+                searchInSafari()
+            }) {
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                    Text(L["quiz.searchButton"])
                 }
-                .padding(4)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
             }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
+            .tint(.blue)
         }
         .padding(16)
         .background(
