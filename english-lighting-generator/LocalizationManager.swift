@@ -86,3 +86,17 @@ final class LocalizationManager {
         strings[key] ?? key
     }
 }
+
+extension LocalizationManager {
+    var nativeLanguageName: String {
+        switch currentLanguage.id {
+        case "pt-BR":  return "Brazilian Portuguese"
+        case "es-419": return "Latin American Spanish"
+        case "id":     return "Indonesian"
+        case "vi":     return "Vietnamese"
+        case "ar":     return "Arabic"
+        case "fr":     return "French"
+        default:       return "Japanese"
+        }
+    }
+}

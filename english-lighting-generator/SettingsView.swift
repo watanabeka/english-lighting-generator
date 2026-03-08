@@ -23,7 +23,6 @@ struct SettingsView: View {
                 reviewSection
                 languageSection
             }
-            .navigationTitle(L["tab.settings"])
         }
     }
 
