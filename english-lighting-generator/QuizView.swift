@@ -52,7 +52,7 @@ final class QuizViewModel {
     var selectedLevel: EnglishLevel = .level1
 
     var quiz: WordOrderQuizOutput? = nil
-    var translation: String = ""  // Translated sentence
+    var translation: String = ""
     var bankTokens: [WordToken] = []
     var placedTokens: [WordToken] = []
     var userSentence: String = ""
@@ -86,7 +86,6 @@ final class QuizViewModel {
         }
         recordUsage(quiz: true, modelContext: modelContext)
 
-        // Save the input word to history if specified
         let wordToSave = word.trimmingCharacters(in: .whitespaces)
         if !wordToSave.isEmpty {
             saveWordHistory(wordToSave, modelContext: modelContext)
@@ -139,14 +138,12 @@ final class QuizViewModel {
 
             let session = LanguageModelSession(instructions: systemPrompt)
             do {
-                // Step 1: Generate in English
                 let response = try await session.respond(
                     to: "Generate now.",
                     generating: WordOrderQuizOutput.self
                 )
                 let output = response.content
 
-                // Check if input word is included when specified
                 if !wordHint.isEmpty {
                     let sentenceLower = output.correctSentence.lowercased()
                     let wordLower = wordHint.lowercased()
@@ -180,7 +177,6 @@ final class QuizViewModel {
 
                 let tokens = shuffled.enumerated().map { WordToken(id: $0.offset, word: $0.element) }
 
-                // Step 2: Translate sentence to native language
                 let translationSession = LanguageModelSession(instructions: "Translate English to \(nativeLang).")
                 let translationResponse = try await translationSession.respond(
                     to: output.translationEnglish,
@@ -244,55 +240,53 @@ private struct QuizContentView: View {
     @State private var isInputVisible = true
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+        ZStack {
+            if viewModel.isGenerating && !isInputVisible {
+                AIGeneratingView(
+                    headline: L["button.generating"],
+                    subtitle: "問題を生成しています..."
+                )
+                .transition(.opacity)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
 
-                if isInputVisible {
-                    inputSection
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                }
+                        if isInputVisible {
+                            screenTitle
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
 
-                if !viewModel.errorMessage.isEmpty {
-                    errorView
-                }
+                        if !viewModel.errorMessage.isEmpty {
+                            errorCard
+                        }
 
-                if viewModel.isGenerating && !isInputVisible {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 40)
-                        .transition(.opacity)
-                }
+                        if isInputVisible {
+                            settingsCard
+                                .transition(.move(edge: .top).combined(with: .opacity))
+                        }
 
-                if viewModel.quiz != nil {
-                    WordOrderCard(viewModel: viewModel, modelContext: modelContext)
-                        .transition(.asymmetric(
-                            insertion: .opacity.combined(with: .move(edge: .bottom)),
-                            removal: .opacity
-                        ))
+                        if viewModel.quiz != nil {
+                            WordOrderCard(viewModel: viewModel, modelContext: modelContext)
+                                .transition(.asymmetric(
+                                    insertion: .opacity.combined(with: .move(edge: .bottom)),
+                                    removal: .opacity
+                                ))
 
-                    if viewModel.isChecked {
-                        ActionButtonsView(
-                            onReset: {
-                                viewModel.reset()
-                                withAnimation(.spring(duration: 0.45)) { isInputVisible = true }
-                            },
-                            onRegenerate: {
-                                viewModel.reset()
-                                viewModel.generate()
+                            if viewModel.isChecked {
+                                nextButtons
+                                    .transition(.opacity)
                             }
-                        )
-                        .transition(.opacity)
+                        } else if !viewModel.isGenerating && isInputVisible {
+                            promptPlaceholder
+                        }
                     }
-                } else if !viewModel.isGenerating && isInputVisible {
-                    promptPlaceholder
+                    .padding(.bottom, 24)
+                    .animation(.spring(duration: 0.45), value: isInputVisible)
+                    .animation(.spring(duration: 0.45), value: viewModel.quiz?.correctSentence)
+                    .animation(.spring(duration: 0.3), value: viewModel.isChecked)
+                    .animation(.easeInOut(duration: 0.25), value: viewModel.errorMessage)
                 }
             }
-            .padding([.horizontal, .bottom])
-            .padding(.top, 5)
-            .animation(.spring(duration: 0.45), value: isInputVisible)
-            .animation(.spring(duration: 0.45), value: viewModel.quiz?.correctSentence)
-            .animation(.spring(duration: 0.3), value: viewModel.isChecked)
-            .animation(.easeInOut(duration: 0.25), value: viewModel.errorMessage)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onChange(of: viewModel.quiz?.correctSentence) { _, sentence in
@@ -302,82 +296,211 @@ private struct QuizContentView: View {
         }
     }
 
-    private var inputSection: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            GroupBox {
-                VStack(alignment: .leading, spacing: 16) {
-                    FormSection(title: L["input.wordLabel"]) {
-                        TextField(L["input.wordPlaceholder"], text: $viewModel.word)
-                            .textFieldStyle(.roundedBorder)
-                    }
-                    Divider()
-                    FormSection(title: L["input.sentenceLengthLabel"]) {
-                        Picker(L["input.sentenceLengthLabel"], selection: $viewModel.selectedLength) {
-                            ForEach(SentenceLength.allCases) { length in
-                                Text(L[length.rawValue]).tag(length)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-                    }
-                    Divider()
-                    FormSection(title: L["input.levelLabel"], badge: L[viewModel.selectedLevel.descriptionKey]) {
-                        Picker(L["input.levelLabel"], selection: $viewModel.selectedLevel) {
-                            ForEach(EnglishLevel.allCases) { level in
-                                Text(L[level.rawValue]).tag(level)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-                    }
-                }
-                .padding(4)
-            }
+    // MARK: Screen Title
 
-            Button(action: { viewModel.generate() }) {
-                HStack {
-                    if viewModel.isGenerating {
-                        ProgressView().controlSize(.small).padding(.trailing, 4)
-                        Text(L["button.generating"])
-                    } else {
-                        Image(systemName: "dice.fill")
-                        Text(L["quiz.generateButton"])
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 4)
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .disabled(
-                viewModel.word.trimmingCharacters(in: .whitespaces).isEmpty
-                || viewModel.isGenerating
-            )
+    private var screenTitle: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(L["tab.quiz"])
+                .font(.system(size: 28, weight: .bold))
+                .foregroundStyle(.white)
+            Text("単語を並べて英文を完成させよう")
+                .font(.subheadline)
+                .foregroundStyle(Color.white.opacity(0.58))
         }
+        .padding(.horizontal, 20)
+        .padding(.top, 4)
     }
 
-    private var errorView: some View {
-        HStack(alignment: .top, spacing: 8) {
+    // MARK: Settings Card
+
+    private var settingsCard: some View {
+        VStack(spacing: 0) {
+            // Word hint
+            cardRow {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(L["input.wordLabel"])
+                        .font(.caption).fontWeight(.semibold)
+                        .foregroundStyle(Color.appCardSub)
+                    TextField(L["quiz.wordHintPlaceholder"], text: $viewModel.word)
+                        .font(.body)
+                        .foregroundStyle(Color.appCardText)
+                }
+            }
+
+            cardDivider
+
+            // Level
+            cardRow {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text(L["input.levelLabel"])
+                            .font(.caption).fontWeight(.semibold)
+                            .foregroundStyle(Color.appCardSub)
+                        Spacer()
+                        Text(L[viewModel.selectedLevel.descriptionKey])
+                            .font(.caption2)
+                            .foregroundStyle(Color.appCardSub)
+                    }
+                    Picker("", selection: $viewModel.selectedLevel) {
+                        ForEach(EnglishLevel.allCases) { level in
+                            Text(L[level.rawValue]).tag(level)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+            }
+        }
+        .background(Color.white)
+        .cornerRadius(20)
+        .shadow(color: .black.opacity(0.18), radius: 14, y: 5)
+        .padding(.horizontal, 16)
+        .overlay(alignment: .bottom) {
+            generateButton
+                .padding(.horizontal, 16)
+                .offset(y: 60)
+        }
+        .padding(.bottom, 72)
+    }
+
+    private func cardRow<C: View>(@ViewBuilder content: () -> C) -> some View {
+        content()
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+    }
+
+    private var cardDivider: some View {
+        Rectangle()
+            .fill(Color.appCardSub.opacity(0.15))
+            .frame(height: 0.5)
+            .padding(.horizontal, 16)
+    }
+
+    private var generateButton: some View {
+        Button(action: { viewModel.generate() }) {
+            HStack(spacing: 8) {
+                if viewModel.isGenerating {
+                    ProgressView().controlSize(.small).tint(.white)
+                } else {
+                    Image(systemName: "dice.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                }
+                Text(viewModel.isGenerating ? L["button.generating"] : L["quiz.generateButton"])
+                    .font(.system(size: 16, weight: .bold))
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 54)
+            .background(
+                LinearGradient(
+                    colors: [Color.appBlue, Color.appBlueDark],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .cornerRadius(16)
+            .shadow(color: Color.appBlue.opacity(0.45), radius: 10, y: 4)
+        }
+        .buttonStyle(.plain)
+        .disabled(viewModel.isGenerating)
+        .opacity(viewModel.isGenerating ? 0.6 : 1.0)
+    }
+
+    // MARK: Error Card
+
+    private var errorCard: some View {
+        HStack(alignment: .top, spacing: 10) {
             Image(systemName: "exclamationmark.circle.fill").foregroundStyle(.red)
             Text(viewModel.errorMessage)
-                .font(.subheadline).foregroundStyle(.red)
+                .font(.subheadline)
+                .foregroundStyle(Color(red: 0.8, green: 0.1, blue: 0.1))
         }
-        .padding(12)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.red.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+        .background(Color.white)
+        .cornerRadius(16)
+        .padding(.horizontal, 16)
     }
 
+    // MARK: Prompt Placeholder
+
     private var promptPlaceholder: some View {
-        VStack(spacing: 14) {
-            Image(systemName: "text.word.spacing")
-                .font(.system(size: 52))
-                .foregroundStyle(.tint)
-            Text(L["quiz.prompt"])
-                .font(.headline).foregroundStyle(.secondary)
-            Text(L["quiz.promptDetail"])
-                .font(.subheadline).foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
+        VStack(spacing: 20) {
+            ZStack {
+                Circle()
+                    .fill(Color.white.opacity(0.10))
+                    .frame(width: 80, height: 80)
+                Image(systemName: "text.word.spacing")
+                    .font(.system(size: 36))
+                    .foregroundStyle(Color.white.opacity(0.70))
+            }
+            VStack(spacing: 8) {
+                Text(L["quiz.prompt"])
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.white)
+                Text(L["quiz.promptDetail"])
+                    .font(.subheadline)
+                    .foregroundStyle(Color.white.opacity(0.55))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+            }
         }
-        .padding(.top, 20)
         .frame(maxWidth: .infinity)
+        .padding(.top, 20)
+    }
+
+    // MARK: Next / Reset Buttons
+
+    private var nextButtons: some View {
+        VStack(spacing: 12) {
+            Button(action: {
+                viewModel.reset()
+                viewModel.generate()
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 15, weight: .semibold))
+                    Text("次の問題")
+                        .font(.system(size: 16, weight: .bold))
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 54)
+                .background(
+                    LinearGradient(
+                        colors: [Color.appBlue, Color.appBlueDark],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .cornerRadius(16)
+                .shadow(color: Color.appBlue.opacity(0.40), radius: 10, y: 4)
+            }
+            .buttonStyle(.plain)
+
+            Button(action: {
+                viewModel.reset()
+                withAnimation(.spring(duration: 0.45)) { isInputVisible = true }
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "house")
+                        .font(.system(size: 15, weight: .semibold))
+                    Text("設定に戻る")
+                        .font(.system(size: 16, weight: .semibold))
+                }
+                .foregroundStyle(Color.white.opacity(0.85))
+                .frame(maxWidth: .infinity)
+                .frame(height: 52)
+                .background(Color.white.opacity(0.14))
+                .cornerRadius(16)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.white.opacity(0.28), lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 16)
     }
 }
 
@@ -393,92 +516,139 @@ private struct WordOrderCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
 
-            // ── Question (translation as prompt) ──────────────────────────
+            // Question card (white)
             if viewModel.quiz != nil {
-                GroupBox {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Label(L["quiz.questionLabel"], systemImage: "text.word.spacing")
-                            .font(.subheadline).fontWeight(.semibold)
-                            .foregroundStyle(.tint)
+                VStack(alignment: .leading, spacing: 0) {
+                    // Header
+                    HStack(spacing: 6) {
+                        Image(systemName: "text.word.spacing")
+                            .font(.caption)
+                            .foregroundStyle(Color.appBlue)
+                        Text(L["quiz.questionLabel"])
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundStyle(Color.appBlue)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 18)
+                    .padding(.bottom, 10)
+
+                    Rectangle()
+                        .fill(Color.appCardSub.opacity(0.12))
+                        .frame(height: 0.5)
+                        .padding(.horizontal, 16)
+
+                    // Translation / question sentence
+                    VStack(alignment: .leading, spacing: 6) {
                         Text(viewModel.translation)
                             .font(.body)
+                            .fontWeight(.medium)
+                            .foregroundStyle(Color.appCardText)
                             .textSelection(.enabled)
                         Text(L["quiz.instruction"])
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.appCardSub)
                     }
-                    .padding(4)
+                    .padding(20)
                 }
+                .background(Color.white)
+                .cornerRadius(20)
+                .shadow(color: .black.opacity(0.16), radius: 12, y: 4)
+                .padding(.horizontal, 16)
             }
 
-            // ── Word Bank + Answer (hidden after check) ───────────────────
+            // Word bank + answer area (hidden after check)
             if !viewModel.isChecked {
-                GroupBox {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(L["quiz.bankLabel"])
-                            .font(.caption).fontWeight(.semibold)
-                            .foregroundStyle(.secondary)
-                        WrapLayout(spacing: 8) {
-                            ForEach(viewModel.bankTokens) { token in
-                                WordChip(word: token.word, isPlaced: false, isDisabled: false) {
-                                    withAnimation(.spring(duration: 0.2)) { viewModel.tapBank(token) }
-                                }
+                // Bank
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(L["quiz.bankLabel"])
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundStyle(Color.white.opacity(0.65))
+                        .padding(.horizontal, 20)
+
+                    WrapLayout(spacing: 8) {
+                        ForEach(viewModel.bankTokens) { token in
+                            QuizWordChip(word: token.word, style: .bank) {
+                                withAnimation(.spring(duration: 0.2)) { viewModel.tapBank(token) }
                             }
                         }
-                        .frame(minHeight: 36)
                     }
-                    .padding(4)
+                    .frame(minHeight: 40)
+                    .padding(.horizontal, 16)
                 }
 
-                GroupBox {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(L["quiz.answerLabel"])
-                            .font(.caption).fontWeight(.semibold)
-                            .foregroundStyle(.secondary)
-                        ZStack(alignment: .topLeading) {
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.primary.opacity(0.03))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.primary.opacity(0.12), lineWidth: 1.5)
-                                )
-                            if viewModel.placedTokens.isEmpty {
-                                Text(L["quiz.answerPlaceholder"])
-                                    .font(.subheadline).foregroundStyle(.tertiary)
-                                    .padding(10)
-                            } else {
-                                WrapLayout(spacing: 8) {
-                                    ForEach(viewModel.placedTokens) { token in
-                                        WordChip(word: token.word, isPlaced: true, isDisabled: false) {
-                                            withAnimation(.spring(duration: 0.2)) { viewModel.tapPlaced(token) }
-                                        }
+                // Answer area
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(L["quiz.answerLabel"])
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundStyle(Color.white.opacity(0.65))
+                        .padding(.horizontal, 20)
+
+                    ZStack(alignment: .topLeading) {
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(Color.white.opacity(0.10))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(
+                                        viewModel.placedTokens.isEmpty
+                                            ? Color.white.opacity(0.20)
+                                            : Color.appBlue.opacity(0.55),
+                                        lineWidth: 1.5
+                                    )
+                            )
+
+                        if viewModel.placedTokens.isEmpty {
+                            Text(L["quiz.answerPlaceholder"])
+                                .font(.subheadline)
+                                .foregroundStyle(Color.white.opacity(0.35))
+                                .padding(14)
+                        } else {
+                            WrapLayout(spacing: 8) {
+                                ForEach(viewModel.placedTokens) { token in
+                                    QuizWordChip(word: token.word, style: .placed) {
+                                        withAnimation(.spring(duration: 0.2)) { viewModel.tapPlaced(token) }
                                     }
                                 }
-                                .padding(8)
                             }
+                            .padding(10)
                         }
-                        .frame(minHeight: 52)
                     }
-                    .padding(4)
+                    .frame(minHeight: 56)
+                    .padding(.horizontal, 16)
                 }
-            }
 
-            // ── Check Button ──────────────────────────────────────────────
-            if !viewModel.isChecked {
+                // Check button
                 Button(action: { viewModel.checkAnswer(modelContext: modelContext) }) {
                     Text(L["quiz.checkButton"])
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 4)
+                        .frame(height: 54)
+                        .background(
+                            viewModel.allPlaced
+                                ? LinearGradient(colors: [Color.appBlue, Color.appBlueDark], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                : LinearGradient(colors: [Color.white.opacity(0.18), Color.white.opacity(0.12)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                        )
+                        .cornerRadius(16)
+                        .shadow(color: viewModel.allPlaced ? Color.appBlue.opacity(0.40) : .clear, radius: 10, y: 4)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+                .buttonStyle(.plain)
                 .disabled(!viewModel.allPlaced)
+                .padding(.horizontal, 16)
             }
 
-            // ── Result ────────────────────────────────────────────────────
+            // Result
             if viewModel.isChecked, let quiz = viewModel.quiz {
-                ResultSection(quiz: quiz, userSentence: viewModel.userSentence, isCorrect: viewModel.isCorrect, translation: viewModel.translation)
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                QuizResultSection(
+                    quiz: quiz,
+                    userSentence: viewModel.userSentence,
+                    isCorrect: viewModel.isCorrect,
+                    translation: viewModel.translation
+                )
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+                .padding(.horizontal, 16)
             }
         }
         .animation(.spring(duration: 0.3), value: viewModel.bankTokens.count)
@@ -487,10 +657,10 @@ private struct WordOrderCard: View {
     }
 }
 
-// MARK: - Result Section
+// MARK: - Quiz Result Section
 
 @available(macOS 26.0, *)
-private struct ResultSection: View {
+private struct QuizResultSection: View {
     let quiz: WordOrderQuizOutput
     let userSentence: String
     let isCorrect: Bool
@@ -498,9 +668,8 @@ private struct ResultSection: View {
 
     @Environment(LocalizationManager.self) private var L
 
-    private var accentColor: Color { isCorrect ? .green : .red }
+    private var accent: Color { isCorrect ? Color(red: 0.15, green: 0.72, blue: 0.45) : Color(red: 0.90, green: 0.25, blue: 0.25) }
     private var badgeIcon: String { isCorrect ? "checkmark.circle.fill" : "xmark.circle.fill" }
-    private var userSentenceColor: Color { isCorrect ? .primary : Color.red.opacity(0.8) }
 
     private func searchInSafari() {
         let query = """
@@ -509,7 +678,6 @@ private struct ResultSection: View {
             正答: \(quiz.correctSentence)
             この問題を解説、ポイントを教えてください
             """
-
         if let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
            let url = URL(string: "https://www.google.com/search?q=\(encoded)&udm=50") {
             #if os(iOS)
@@ -521,70 +689,76 @@ private struct ResultSection: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-
-            // Badge
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: 0) {
+            // Result banner
+            HStack(spacing: 10) {
                 Image(systemName: badgeIcon)
-                    .font(.title2)
-                    .foregroundStyle(accentColor)
+                    .font(.title3)
+                    .foregroundStyle(accent)
                 Text(isCorrect ? L["quiz.correct"] : L["quiz.incorrect"])
                     .font(.headline)
-                    .foregroundStyle(accentColor)
+                    .fontWeight(.bold)
+                    .foregroundStyle(accent)
             }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 14)
 
-            // User's sentence
-            GroupBox {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(L["quiz.yourSentenceLabel"])
-                        .font(.caption).fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
-                    Text(userSentence)
-                        .font(.body)
-                        .textSelection(.enabled)
-                        .foregroundStyle(userSentenceColor)
-                }
-                .padding(4)
-            }
+            Rectangle()
+                .fill(Color.appCardSub.opacity(0.12))
+                .frame(height: 0.5)
+                .padding(.horizontal, 16)
 
-            // Correct sentence (always shown)
-            GroupBox {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(L["quiz.correctSentenceLabel"])
-                        .font(.caption).fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
-                    Text(quiz.correctSentence)
-                        .font(.body)
-                        .textSelection(.enabled)
-                        .foregroundStyle(Color.green.opacity(0.9))
-                }
-                .padding(4)
+            // Your answer
+            VStack(alignment: .leading, spacing: 6) {
+                Text(L["quiz.yourSentenceLabel"])
+                    .font(.caption).fontWeight(.semibold)
+                    .foregroundStyle(Color.appCardSub)
+                Text(userSentence)
+                    .font(.body)
+                    .textSelection(.enabled)
+                    .foregroundStyle(isCorrect ? Color.appCardText : accent)
             }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+
+            Rectangle()
+                .fill(Color.appCardSub.opacity(0.12))
+                .frame(height: 0.5)
+                .padding(.horizontal, 16)
+
+            // Correct answer
+            VStack(alignment: .leading, spacing: 6) {
+                Text(L["quiz.correctSentenceLabel"])
+                    .font(.caption).fontWeight(.semibold)
+                    .foregroundStyle(Color.appCardSub)
+                Text(quiz.correctSentence)
+                    .font(.body)
+                    .textSelection(.enabled)
+                    .foregroundStyle(Color(red: 0.15, green: 0.65, blue: 0.40))
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
 
             // Search button
-            Button(action: {
-                searchInSafari()
-            }) {
-                HStack {
+            Button(action: { searchInSafari() }) {
+                HStack(spacing: 6) {
                     Image(systemName: "magnifyingglass")
+                        .font(.system(size: 14))
                     Text(L["quiz.searchButton"])
+                        .font(.subheadline).fontWeight(.medium)
                 }
+                .foregroundStyle(Color.appBlue)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
+                .padding(.vertical, 14)
+                .background(Color.appBlue.opacity(0.08))
             }
-            .buttonStyle(.bordered)
-            .controlSize(.large)
-            .tint(.blue)
+            .buttonStyle(.plain)
+            .cornerRadius(0)
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(accentColor.opacity(0.05))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(accentColor.opacity(0.2), lineWidth: 1)
-                )
-        )
+        .background(Color.white)
+        .cornerRadius(20)
+        .shadow(color: .black.opacity(0.16), radius: 12, y: 4)
     }
 }
 
@@ -632,36 +806,47 @@ private struct WrapLayout: Layout {
     }
 }
 
-// MARK: - Word Chip
+// MARK: - Quiz Word Chip
 
-private struct WordChip: View {
+private struct QuizWordChip: View {
+    enum ChipStyle { case bank, placed }
+
     let word: String
-    let isPlaced: Bool
-    let isDisabled: Bool
+    let style: ChipStyle
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Text(word)
-                .font(.body)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(bgColor, in: RoundedRectangle(cornerRadius: 8))
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(textColor)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(bgColor, in: Capsule())
                 .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(borderColor, lineWidth: 1.5)
+                    Capsule().stroke(borderColor, lineWidth: 1.5)
                 )
         }
         .buttonStyle(.plain)
-        .disabled(isDisabled)
     }
 
     private var bgColor: Color {
-        isPlaced ? Color.blue.opacity(0.1) : Color.primary.opacity(0.06)
+        switch style {
+        case .bank:   return Color.white.opacity(0.14)
+        case .placed: return Color.appBlue.opacity(0.18)
+        }
     }
-
     private var borderColor: Color {
-        isPlaced ? Color.blue.opacity(0.4) : Color.primary.opacity(0.12)
+        switch style {
+        case .bank:   return Color.white.opacity(0.30)
+        case .placed: return Color.appBlue.opacity(0.60)
+        }
+    }
+    private var textColor: Color {
+        switch style {
+        case .bank:   return Color.white.opacity(0.90)
+        case .placed: return Color.white
+        }
     }
 }
 

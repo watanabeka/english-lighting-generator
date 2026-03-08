@@ -22,121 +22,200 @@ struct AnalyticsView: View {
     var onSelectWord: (String) -> Void
 
     var body: some View {
-        VStack(spacing: 0) {
-            statsSection
-                .padding(.horizontal)
-                .padding(.top, 8)
-                .padding(.bottom, 12)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
 
-            Divider()
-
-            List {
-                Section {
-                    if allItems.isEmpty {
-                        emptyState
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                    } else {
-                        ForEach(visibleItems) { item in
-                            HistoryItemRow(item: item, onGenerate: { onSelectWord(item.englishWord) })
-                                .listRowBackground(Color.clear)
-                                .listRowSeparator(.hidden)
-                                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                                .swipeActions(edge: .trailing) {
-                                    Button(role: .destructive) {
-                                        modelContext.delete(item)
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
-                        }
-                        if hasMore {
-                            ProgressView()
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 8)
-                                .listRowBackground(Color.clear)
-                                .listRowSeparator(.hidden)
-                                .onAppear { daysShown += 7 }
-                        }
-                    }
-                } header: {
-                    Text(L["analytics.historyLabel"])
-                        .font(.footnote).fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
+                // Screen title
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(L["tab.history"])
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundStyle(.white)
+                    Text(L["analytics.historyTitle"])
+                        .font(.subheadline)
+                        .foregroundStyle(Color.white.opacity(0.58))
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 4)
+
+                // Stats cards
+                statsSection
+                    .padding(.horizontal, 16)
+
+                // History list
+                historySection
+                    .padding(.horizontal, 16)
             }
-            .listStyle(.plain)
+            .padding(.bottom, 24)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // MARK: - Stats Section
+    // MARK: Stats Section
 
     private var statsSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(L["analytics.historyTitle"])
-                .font(.footnote).fontWeight(.semibold)
-                .foregroundStyle(.secondary)
-                .padding(.bottom, 4)
+        VStack(spacing: 0) {
+            statRow(
+                title: L["analytics.today"],
+                count: totalUsage(daysAgo: 0, count: 1),
+                comparison: pctChange(
+                    current: totalUsage(daysAgo: 0, count: 1),
+                    previous: totalUsage(daysAgo: 1, count: 1)
+                ),
+                compLabel: L["analytics.vsYesterday"],
+                isLast: false
+            )
+            statRow(
+                title: L["analytics.week7"],
+                count: totalUsage(daysAgo: 0, count: 7),
+                comparison: pctChange(
+                    current: totalUsage(daysAgo: 0, count: 7),
+                    previous: totalUsage(daysAgo: 7, count: 7)
+                ),
+                compLabel: L["analytics.vsPrevious"],
+                isLast: false
+            )
+            statRow(
+                title: L["analytics.month28"],
+                count: totalUsage(daysAgo: 0, count: 28),
+                comparison: pctChange(
+                    current: totalUsage(daysAgo: 0, count: 28),
+                    previous: totalUsage(daysAgo: 28, count: 28)
+                ),
+                compLabel: L["analytics.vsPrevious"],
+                isLast: true
+            )
+        }
+        .background(Color.white)
+        .cornerRadius(20)
+        .shadow(color: .black.opacity(0.18), radius: 14, y: 5)
+    }
 
-            VStack(spacing: 10) {
-                StatRow(
-                    title: L["analytics.today"],
-                    count: totalUsage(daysAgo: 0, count: 1),
-                    comparison: pctChange(
-                        current: totalUsage(daysAgo: 0, count: 1),
-                        previous: totalUsage(daysAgo: 1, count: 1)
-                    ),
-                    compLabel: L["analytics.vsYesterday"],
-                    usageFormat: L["analytics.usageFormat"]
-                )
-                Divider()
-                StatRow(
-                    title: L["analytics.week7"],
-                    count: totalUsage(daysAgo: 0, count: 7),
-                    comparison: pctChange(
-                        current: totalUsage(daysAgo: 0, count: 7),
-                        previous: totalUsage(daysAgo: 7, count: 7)
-                    ),
-                    compLabel: L["analytics.vsPrevious"],
-                    usageFormat: L["analytics.usageFormat"]
-                )
-                Divider()
-                StatRow(
-                    title: L["analytics.month28"],
-                    count: totalUsage(daysAgo: 0, count: 28),
-                    comparison: pctChange(
-                        current: totalUsage(daysAgo: 0, count: 28),
-                        previous: totalUsage(daysAgo: 28, count: 28)
-                    ),
-                    compLabel: L["analytics.vsPrevious"],
-                    usageFormat: L["analytics.usageFormat"]
-                )
+    private func statRow(title: String, count: Int, comparison: String, compLabel: String, isLast: Bool) -> some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(.subheadline)
+                        .foregroundStyle(Color.appCardSub)
+                    Text(String(format: L["analytics.usageFormat"], count))
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(Color.appCardText)
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 3) {
+                    Text(comparison)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(comparisonColor(comparison))
+                    Text(compLabel)
+                        .font(.caption2)
+                        .foregroundStyle(Color.appCardSub)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+
+            if !isLast {
+                Rectangle()
+                    .fill(Color.appCardSub.opacity(0.12))
+                    .frame(height: 0.5)
+                    .padding(.horizontal, 16)
             }
         }
     }
 
-    // MARK: - Empty State
+    private func comparisonColor(_ text: String) -> Color {
+        if text.hasPrefix("+") && text != "+∞%" { return Color(red: 0.15, green: 0.65, blue: 0.40) }
+        if text.hasPrefix("-") { return Color(red: 0.85, green: 0.25, blue: 0.25) }
+        return Color.appCardSub
+    }
+
+    // MARK: History Section
+
+    private var historySection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(L["analytics.historyLabel"])
+                .font(.footnote)
+                .fontWeight(.bold)
+                .foregroundStyle(Color.white.opacity(0.60))
+                .padding(.horizontal, 4)
+
+            if allItems.isEmpty {
+                emptyState
+            } else {
+                ForEach(visibleItems) { item in
+                    HistoryItemRow(item: item, onGenerate: { onSelectWord(item.englishWord) })
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                modelContext.delete(item)
+                            } label: {
+                                Label("削除", systemImage: "trash")
+                            }
+                        }
+                }
+                if hasMore {
+                    HStack {
+                        Spacer()
+                        ProgressView()
+                            .tint(Color.white.opacity(0.6))
+                            .padding(.vertical, 12)
+                            .onAppear { daysShown += 7 }
+                        Spacer()
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: Empty State
 
     private var emptyState: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "clock.badge.questionmark")
-                .font(.system(size: 52))
-                .foregroundStyle(.secondary)
-            Text(L["history.empty"])
-                .font(.headline).foregroundStyle(.secondary)
-            Text(L["history.emptyDetail"])
-                .font(.subheadline).foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
-            Button(action: { onSelectWord("") }) {
-                Label(L["history.generateButton"], systemImage: "wand.and.sparkles")
+        VStack(spacing: 20) {
+            ZStack {
+                Circle()
+                    .fill(Color.white.opacity(0.10))
+                    .frame(width: 80, height: 80)
+                Image(systemName: "clock.badge.questionmark")
+                    .font(.system(size: 36))
+                    .foregroundStyle(Color.white.opacity(0.65))
             }
+            VStack(spacing: 8) {
+                Text(L["history.empty"])
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.white)
+                Text(L["history.emptyDetail"])
+                    .font(.subheadline)
+                    .foregroundStyle(Color.white.opacity(0.55))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+            }
+            Button(action: { onSelectWord("") }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "wand.and.sparkles")
+                        .font(.system(size: 14))
+                    Text(L["history.generateButton"])
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 12)
+                .background(
+                    LinearGradient(
+                        colors: [Color.appBlue, Color.appBlueDark],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .cornerRadius(14)
+            }
+            .buttonStyle(.plain)
         }
-        .padding()
         .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
     }
 
-    // MARK: - Helpers
+    // MARK: Helpers
 
     private var cutoffDate: String { String.dateKey(daysAgo: daysShown - 1) }
     private var visibleItems: [WordHistoryItem] { allItems.filter { $0.date >= cutoffDate } }
@@ -156,30 +235,6 @@ struct AnalyticsView: View {
     }
 }
 
-// MARK: - Stat Row
-
-private struct StatRow: View {
-    let title: String
-    let count: Int
-    let comparison: String
-    let compLabel: String
-    let usageFormat: String
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(title)
-                .font(.subheadline).foregroundStyle(.secondary)
-            Spacer()
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(String(format: usageFormat, count))
-                    .font(.body).fontWeight(.semibold)
-                Text("\(compLabel) \(comparison)")
-                    .font(.caption2).foregroundStyle(.secondary)
-            }
-        }
-    }
-}
-
 // MARK: - History Item Row
 
 private struct HistoryItemRow: View {
@@ -193,29 +248,51 @@ private struct HistoryItemRow: View {
     }()
 
     var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
+        HStack(spacing: 14) {
+            // Word info
+            VStack(alignment: .leading, spacing: 4) {
                 Text(item.englishWord)
-                    .font(.body).fontWeight(.medium)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white)
                     .lineLimit(2)
                 Text(Self.relFormatter.localizedString(for: item.timestamp, relativeTo: Date()))
-                    .font(.caption).foregroundStyle(.tertiary)
+                    .font(.caption)
+                    .foregroundStyle(Color.white.opacity(0.50))
             }
+
             Spacer()
+
+            // Arrow button
             Button(action: onGenerate) {
-                Image(systemName: "arrow.up.right.square.fill")
-                    .font(.title3).foregroundStyle(.tint)
+                ZStack {
+                    Circle()
+                        .fill(Color.appBlue.opacity(0.22))
+                        .frame(width: 36, height: 36)
+                    Image(systemName: "arrow.up.right")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(Color.appBlue)
+                }
             }
             .buttonStyle(.plain)
         }
-        .padding(.vertical, 6)
-        .padding(.horizontal, 12)
-        .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10))
+        .padding(.vertical, 14)
+        .padding(.horizontal, 18)
+        .background(Color.white.opacity(0.10))
+        .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
+        )
     }
 }
 
+// MARK: - Preview
+
 #Preview {
-    AnalyticsView(onSelectWord: { _ in })
-        .environment(LocalizationManager.shared)
-        .modelContainer(for: [WordHistoryItem.self, UsageRecord.self], inMemory: true)
+    ZStack {
+        AppBackground()
+        AnalyticsView(onSelectWord: { _ in })
+            .environment(LocalizationManager.shared)
+    }
+    .modelContainer(for: [WordHistoryItem.self, UsageRecord.self], inMemory: true)
 }
