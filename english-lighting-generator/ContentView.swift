@@ -209,6 +209,48 @@ extension Color {
     static let btnBlueDark = Color(red: 0.15, green: 0.30, blue: 0.60)
 }
 
+// MARK: - Blue Segmented Picker
+
+struct BlueSegmentedPicker<T: Hashable & Identifiable>: View {
+    let options: [T]
+    let label: (T) -> String
+    @Binding var selection: T
+
+    var body: some View {
+        HStack(spacing: 3) {
+            ForEach(options) { option in
+                let isOn = selection == option
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.18)) { selection = option }
+                }) {
+                    Text(label(option))
+                        .font(.system(size: 12, weight: isOn ? .bold : .medium))
+                        .foregroundStyle(isOn ? .white : Color(red: 0.30, green: 0.46, blue: 0.70))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 7)
+                        .background(
+                            Capsule()
+                                .fill(
+                                    isOn
+                                        ? AnyShapeStyle(LinearGradient(colors: [.btnBlue, .btnBlueDark], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                        : AnyShapeStyle(Color.clear)
+                                )
+                                .shadow(color: isOn ? Color.btnBlue.opacity(0.30) : .clear, radius: 5, y: 2)
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(4)
+        .background(
+            RoundedRectangle(cornerRadius: 13)
+                .fill(Color(red: 0.82, green: 0.89, blue: 0.97))
+        )
+    }
+}
+
 // MARK: - App Background
 
 struct AppBackground: View {
@@ -532,13 +574,11 @@ struct GeneratorView: View {
                         .font(.system(size: 11))
                         .foregroundStyle(Color.cardSub)
                 }
-                Picker("", selection: $viewModel.level) {
-                    ForEach(EnglishLevel.allCases) { l in
-                        Text(L[l.rawValue]).tag(l)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .tint(Color.btnBlue)
+                BlueSegmentedPicker(
+                    options: EnglishLevel.allCases,
+                    label: { L[$0.rawValue] },
+                    selection: $viewModel.level
+                )
             }
 
             // Length picker
@@ -546,13 +586,11 @@ struct GeneratorView: View {
                 Text(L["input.sentenceLengthLabel"])
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Color.cardSub)
-                Picker("", selection: $viewModel.sentenceLength) {
-                    ForEach(SentenceLength.allCases) { l in
-                        Text(L[l.rawValue]).tag(l)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .tint(Color.btnBlue)
+                BlueSegmentedPicker(
+                    options: SentenceLength.allCases,
+                    label: { L[$0.rawValue] },
+                    selection: $viewModel.sentenceLength
+                )
             }
 
             // Generate button

@@ -277,13 +277,11 @@ private struct QuizContentView: View {
                         .font(.system(size: 11))
                         .foregroundStyle(Color.cardSub)
                 }
-                Picker("", selection: $viewModel.selectedLevel) {
-                    ForEach(EnglishLevel.allCases) { level in
-                        Text(L[level.rawValue]).tag(level)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .tint(Color.btnBlue)
+                BlueSegmentedPicker(
+                    options: EnglishLevel.allCases,
+                    label: { L[$0.rawValue] },
+                    selection: $viewModel.selectedLevel
+                )
             }
 
             generateButton
