@@ -306,20 +306,20 @@ struct GlowLoadingBar: View {
                 let span = w + streakW
 
                 ZStack {
-                    // Track
+                    // Track — navy tinted
                     Capsule()
-                        .fill(Color.white.opacity(0.20))
+                        .fill(Color.btnBlue.opacity(0.18))
                         .frame(width: w, height: 5)
 
-                    // Glow streak
+                    // Sweep streak — dark navy
                     Capsule()
                         .fill(
                             LinearGradient(
                                 colors: [
                                     .clear,
-                                    Color.white.opacity(0.60),
-                                    Color.white,
-                                    Color.white.opacity(0.60),
+                                    Color.btnBlue.opacity(0.55),
+                                    Color.btnBlueDark,
+                                    Color.btnBlue.opacity(0.55),
                                     .clear
                                 ],
                                 startPoint: .leading,
@@ -327,8 +327,8 @@ struct GlowLoadingBar: View {
                             )
                         )
                         .frame(width: streakW, height: 5)
-                        .shadow(color: .white, radius: 8, x: 0, y: 0)
-                        .shadow(color: Color(red: 0.55, green: 0.75, blue: 1.0).opacity(0.90), radius: 18, x: 0, y: 0)
+                        .shadow(color: Color.btnBlue.opacity(0.55), radius: 8, x: 0, y: 0)
+                        .shadow(color: Color.btnBlueDark.opacity(0.35), radius: 16, x: 0, y: 0)
                         .offset(x: phase * span - span / 2)
                 }
                 .frame(width: w, height: 14, alignment: .center)
@@ -339,7 +339,7 @@ struct GlowLoadingBar: View {
 
             Text(subtitle)
                 .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(Color.white.opacity(0.75))
+                .foregroundStyle(Color.cardSub)
         }
         .frame(maxWidth: .infinity)
         .onAppear {
@@ -500,16 +500,17 @@ struct GeneratorView: View {
                     .transition(.opacity)
 
             } else if !viewModel.englishResult.isEmpty {
-                // ── Result ───────────────────────────────────────────────
-                ScrollView {
-                    VStack(spacing: 20) {
-                        if !viewModel.errorMessage.isEmpty { errorBanner }
-                        outputCard
-                        actionButtons
+                // ── Result (vertically centred) ──────────────────────────
+                VStack(spacing: 20) {
+                    if !viewModel.errorMessage.isEmpty {
+                        errorBanner.padding(.horizontal, 16)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 20)
+                    Spacer(minLength: 0)
+                    outputCard.padding(.horizontal, 16)
+                    actionButtons.padding(.horizontal, 16)
+                    Spacer(minLength: 0)
                 }
+                .padding(.vertical, 20)
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
 
             } else {
@@ -711,29 +712,11 @@ struct GeneratorView: View {
     // MARK: Action Buttons
 
     private var actionButtons: some View {
-        VStack(spacing: 10) {
-            Button(action: {
-                viewModel.reset()
-                viewModel.generate(modelContext: modelContext)
-            }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "arrow.clockwise").font(.system(size: 14, weight: .semibold))
-                    Text("英文を再生成").font(.system(size: 16, weight: .bold))
-                }
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .frame(height: 52)
-                .background(
-                    Capsule()
-                        .fill(LinearGradient(colors: [.btnBlue, .btnBlueDark], startPoint: .topLeading, endPoint: .bottomTrailing))
-                        .shadow(color: Color.btnBlue.opacity(0.40), radius: 12, y: 5)
-                )
-            }
-            .buttonStyle(.plain)
-
+        HStack(spacing: 10) {
+            // 完了
             Button(action: { viewModel.reset() }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "checkmark.circle").font(.system(size: 14, weight: .semibold))
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle").font(.system(size: 13, weight: .semibold))
                     Text("完了").font(.system(size: 15, weight: .semibold))
                 }
                 .foregroundStyle(Color.btnBlue)
@@ -741,8 +724,28 @@ struct GeneratorView: View {
                 .frame(height: 50)
                 .background(
                     Capsule()
-                        .fill(Color.white.opacity(0.75))
-                        .shadow(color: Color.btnBlue.opacity(0.15), radius: 10, y: 4)
+                        .fill(Color.white.opacity(0.80))
+                        .shadow(color: Color.btnBlue.opacity(0.15), radius: 8, y: 3)
+                )
+            }
+            .buttonStyle(.plain)
+
+            // 再生成
+            Button(action: {
+                viewModel.reset()
+                viewModel.generate(modelContext: modelContext)
+            }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.clockwise").font(.system(size: 13, weight: .semibold))
+                    Text("英文を再生成").font(.system(size: 15, weight: .bold))
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .background(
+                    Capsule()
+                        .fill(LinearGradient(colors: [.btnBlue, .btnBlueDark], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .shadow(color: Color.btnBlue.opacity(0.38), radius: 10, y: 4)
                 )
             }
             .buttonStyle(.plain)

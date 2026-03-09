@@ -210,19 +210,26 @@ private struct QuizContentView: View {
                     .transition(.opacity)
 
             } else if viewModel.quiz != nil {
-                // ── Quiz active ───────────────────────────────────────────
+                // ── Quiz active (vertically centred) ─────────────────────
                 ScrollView {
                     VStack(spacing: 20) {
-                        if !viewModel.errorMessage.isEmpty { errorBanner }
+                        if !viewModel.errorMessage.isEmpty {
+                            errorBanner.padding(.horizontal, 16)
+                        }
+                        Spacer(minLength: 0)
                         WordOrderCard(viewModel: viewModel, modelContext: modelContext)
+                            .padding(.horizontal, 16)
                             .transition(.asymmetric(
                                 insertion: .opacity.combined(with: .move(edge: .bottom)),
                                 removal: .opacity
                             ))
-                        if viewModel.isChecked { nextButtons.transition(.opacity) }
+                        if viewModel.isChecked {
+                            nextButtons.padding(.horizontal, 16).transition(.opacity)
+                        }
+                        Spacer(minLength: 0)
                     }
-                    .padding(.horizontal, 16)
                     .padding(.vertical, 20)
+                    .frame(maxWidth: .infinity, minHeight: UIScreen.main.bounds.height - 120)
                     .animation(.spring(duration: 0.3), value: viewModel.isChecked)
                 }
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
@@ -259,7 +266,7 @@ private struct QuizContentView: View {
                 Text(L["input.wordLabel"])
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Color.cardSub)
-                TextField(L["quiz.wordHintPlaceholder"], text: $viewModel.word)
+                TextField(L["input.wordPlaceholder"], text: $viewModel.word)
                     .font(.system(size: 16))
                     .foregroundStyle(Color.cardText)
                     .padding(.horizontal, 14)
@@ -332,30 +339,32 @@ private struct QuizContentView: View {
     // MARK: Next / Reset Buttons
 
     private var nextButtons: some View {
-        VStack(spacing: 10) {
-            Button(action: { viewModel.reset(); viewModel.generate() }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "arrow.clockwise").font(.system(size: 14, weight: .semibold))
-                    Text("問題を再生成").font(.system(size: 16, weight: .bold))
-                }
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity).frame(height: 52)
-                .background(
-                    Capsule()
-                        .fill(LinearGradient(colors: [.btnBlue, .btnBlueDark], startPoint: .topLeading, endPoint: .bottomTrailing))
-                        .shadow(color: Color.btnBlue.opacity(0.40), radius: 12, y: 5)
-                )
-            }
-            .buttonStyle(.plain)
-
+        HStack(spacing: 10) {
+            // 完了
             Button(action: { viewModel.reset() }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "checkmark.circle").font(.system(size: 14, weight: .semibold))
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle").font(.system(size: 13, weight: .semibold))
                     Text("完了").font(.system(size: 15, weight: .semibold))
                 }
                 .foregroundStyle(Color.btnBlue)
                 .frame(maxWidth: .infinity).frame(height: 50)
-                .background(Capsule().fill(Color.white.opacity(0.75)).shadow(color: Color.btnBlue.opacity(0.15), radius: 10, y: 4))
+                .background(Capsule().fill(Color.white.opacity(0.80)).shadow(color: Color.btnBlue.opacity(0.15), radius: 8, y: 3))
+            }
+            .buttonStyle(.plain)
+
+            // 再生成
+            Button(action: { viewModel.reset(); viewModel.generate() }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.clockwise").font(.system(size: 13, weight: .semibold))
+                    Text("問題を再生成").font(.system(size: 15, weight: .bold))
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity).frame(height: 50)
+                .background(
+                    Capsule()
+                        .fill(LinearGradient(colors: [.btnBlue, .btnBlueDark], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .shadow(color: Color.btnBlue.opacity(0.38), radius: 10, y: 4)
+                )
             }
             .buttonStyle(.plain)
         }
