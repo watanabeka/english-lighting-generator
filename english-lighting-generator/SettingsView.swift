@@ -18,93 +18,56 @@ struct SettingsView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+            VStack(spacing: 16) {
 
-                // Screen title
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(L["tab.settings"])
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundStyle(.white)
-                    Text("アプリの設定")
-                        .font(.subheadline)
-                        .foregroundStyle(Color.white.opacity(0.58))
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 4)
-
-                // App version card
+                // App info card
                 settingsCard {
-                    settingsRow(
-                        icon: "info.circle.fill",
-                        iconColor: Color.appBlue,
-                        title: L["settings.appVersion"],
-                        trailing: {
-                            Text(appVersion)
-                                .font(.subheadline)
-                                .foregroundStyle(Color.appCardSub)
-                        }
-                    )
+                    settingsRow(icon: "info.circle.fill", iconColor: Color.btnBlue, title: L["settings.appVersion"]) {
+                        Text(appVersion).font(.subheadline).foregroundStyle(Color.cardSub)
+                    }
                 }
-                .padding(.horizontal, 16)
 
                 // Review card
                 settingsCard {
                     Button(action: {}) {
-                        settingsRow(
-                            icon: "star.fill",
-                            iconColor: Color(red: 0.99, green: 0.75, blue: 0.18),
-                            title: L["settings.reviewApp"],
-                            trailing: {
-                                Image(systemName: "chevron.right")
-                                    .font(.caption)
-                                    .foregroundStyle(Color.appCardSub)
-                            }
-                        )
+                        settingsRow(icon: "star.fill", iconColor: Color(red: 0.99, green: 0.75, blue: 0.18), title: L["settings.reviewApp"]) {
+                            Image(systemName: "chevron.right").font(.caption).foregroundStyle(Color.cardSub)
+                        }
                     }
                     .buttonStyle(.plain)
                 }
-                .padding(.horizontal, 16)
 
                 // Language card
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 8) {
                     Text(L["settings.displayLanguage"])
-                        .font(.footnote)
-                        .fontWeight(.bold)
-                        .foregroundStyle(Color.white.opacity(0.60))
-                        .padding(.horizontal, 20)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Color.cardSub)
+                        .padding(.horizontal, 4)
 
                     settingsCard {
                         VStack(spacing: 0) {
                             ForEach(Array(SupportedLanguage.all.enumerated()), id: \.element.id) { index, language in
                                 Button(action: { L.setLanguage(language) }) {
-                                    settingsRow(
-                                        icon: languageIcon(for: language.id),
-                                        iconColor: Color.appBlue.opacity(0.80),
-                                        title: language.displayName,
-                                        trailing: {
-                                            if L.currentLanguage.id == language.id {
-                                                Image(systemName: "checkmark.circle.fill")
-                                                    .font(.system(size: 18))
-                                                    .foregroundStyle(Color.appBlue)
-                                            }
+                                    settingsRow(icon: languageIcon(for: language.id), iconColor: Color.btnBlue.opacity(0.80), title: language.displayName) {
+                                        if L.currentLanguage.id == language.id {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .font(.system(size: 18))
+                                                .foregroundStyle(Color.btnBlue)
                                         }
-                                    )
+                                    }
                                 }
                                 .buttonStyle(.plain)
 
                                 if index < SupportedLanguage.all.count - 1 {
-                                    Rectangle()
-                                        .fill(Color.appCardSub.opacity(0.12))
-                                        .frame(height: 0.5)
-                                        .padding(.horizontal, 16)
+                                    Divider().padding(.horizontal, 14)
                                 }
                             }
                         }
                     }
-                    .padding(.horizontal, 16)
                 }
             }
-            .padding(.bottom, 24)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 20)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -113,42 +76,31 @@ struct SettingsView: View {
 
     private func settingsCard<C: View>(@ViewBuilder content: () -> C) -> some View {
         content()
-            .background(Color.white)
-            .cornerRadius(20)
-            .shadow(color: .black.opacity(0.18), radius: 14, y: 5)
+            .background(
+                RoundedRectangle(cornerRadius: 22)
+                    .fill(Color.white.opacity(0.82))
+                    .shadow(color: Color(red: 0.30, green: 0.50, blue: 0.75).opacity(0.16), radius: 16, x: 0, y: 5)
+                    .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
+            )
     }
 
     // MARK: Settings Row
 
-    private func settingsRow<T: View>(
-        icon: String,
-        iconColor: Color,
-        title: String,
-        @ViewBuilder trailing: () -> T
-    ) -> some View {
+    private func settingsRow<T: View>(icon: String, iconColor: Color, title: String, @ViewBuilder trailing: () -> T) -> some View {
         HStack(spacing: 14) {
             ZStack {
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(iconColor.opacity(0.12))
+                    .fill(iconColor.opacity(0.14))
                     .frame(width: 34, height: 34)
-                Image(systemName: icon)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(iconColor)
+                Image(systemName: icon).font(.system(size: 15, weight: .semibold)).foregroundStyle(iconColor)
             }
-
-            Text(title)
-                .font(.body)
-                .foregroundStyle(Color.appCardText)
-
+            Text(title).font(.body).foregroundStyle(Color.cardText)
             Spacer()
-
             trailing()
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
     }
-
-    // MARK: Language Icon
 
     private func languageIcon(for id: String) -> String {
         switch id {
@@ -169,7 +121,6 @@ struct SettingsView: View {
 #Preview {
     ZStack {
         AppBackground()
-        SettingsView()
-            .environment(LocalizationManager.shared)
+        SettingsView().environment(LocalizationManager.shared)
     }
 }

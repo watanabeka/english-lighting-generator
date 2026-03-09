@@ -27,7 +27,6 @@ struct WordOrderQuizOutput {
     var translationEnglish: String
 }
 
-// Translation output
 @available(macOS 26.0, *)
 @Generable
 struct TranslationOutput {
@@ -81,15 +80,10 @@ final class QuizViewModel {
     func checkAnswer(modelContext: ModelContext) {
         userSentence = placedTokens.map(\.word).joined(separator: " ")
         isCorrect = userSentence == quiz?.correctSentence
-        withAnimation(.spring(duration: 0.3)) {
-            isChecked = true
-        }
+        withAnimation(.spring(duration: 0.3)) { isChecked = true }
         recordUsage(quiz: true, modelContext: modelContext)
-
         let wordToSave = word.trimmingCharacters(in: .whitespaces)
-        if !wordToSave.isEmpty {
-            saveWordHistory(wordToSave, modelContext: modelContext)
-        }
+        if !wordToSave.isEmpty { saveWordHistory(wordToSave, modelContext: modelContext) }
     }
 
     func reset() {
@@ -122,54 +116,37 @@ final class QuizViewModel {
             if recentTopics.isEmpty {
                 topicConstraint = "any topic"
             } else {
-                let avoided = recentTopics.joined(separator: ", ")
-                topicConstraint = "avoid [\(avoided)]"
+                topicConstraint = "avoid [\(recentTopics.joined(separator: ", "))]"
             }
 
             let systemPrompt = """
                 Create a word-order scramble sentence in English.
-
                 Level: \(selectedLevel.quizGrammarHint)
                 Topic: \(topicConstraint)\(topicHint)
                 No contractions. 6-12 words.
-
-                Return: correctSentence, topic, explanationEnglish (grammar explanation in English), translationEnglish (natural English translation).
+                Return: correctSentence, topic, explanationEnglish, translationEnglish.
                 """
 
             let session = LanguageModelSession(instructions: systemPrompt)
             do {
-                let response = try await session.respond(
-                    to: "Generate now.",
-                    generating: WordOrderQuizOutput.self
-                )
+                let response = try await session.respond(to: "Generate now.", generating: WordOrderQuizOutput.self)
                 let output = response.content
 
                 if !wordHint.isEmpty {
-                    let sentenceLower = output.correctSentence.lowercased()
-                    let wordLower = wordHint.lowercased()
-                    guard sentenceLower.contains(wordLower) else {
-                        throw NSError(
-                            domain: "QuizValidation", code: 3,
-                            userInfo: [NSLocalizedDescriptionKey: "Input word '\(wordHint)' not found in sentence"]
-                        )
+                    guard output.correctSentence.lowercased().contains(wordHint.lowercased()) else {
+                        throw NSError(domain: "QuizValidation", code: 3, userInfo: [NSLocalizedDescriptionKey: "Input word not found"])
                     }
                 }
 
-                let words = output.correctSentence
-                    .components(separatedBy: " ")
-                    .filter { !$0.isEmpty }
+                let words = output.correctSentence.components(separatedBy: " ").filter { !$0.isEmpty }
                 guard words.count >= 6 && words.count <= 12 else {
-                    throw NSError(
-                        domain: "QuizValidation", code: 2,
-                        userInfo: [NSLocalizedDescriptionKey: "Word count out of range: \(words.count)"]
-                    )
+                    throw NSError(domain: "QuizValidation", code: 2, userInfo: [NSLocalizedDescriptionKey: "Word count out of range"])
                 }
 
                 var shuffled = words.shuffled()
                 var attempts = 0
                 while shuffled == words && words.count > 1 && attempts < 10 {
-                    shuffled = words.shuffled()
-                    attempts += 1
+                    shuffled = words.shuffled(); attempts += 1
                 }
 
                 recentTopics.append(output.topic)
@@ -178,33 +155,22 @@ final class QuizViewModel {
                 let tokens = shuffled.enumerated().map { WordToken(id: $0.offset, word: $0.element) }
 
                 let translationSession = LanguageModelSession(instructions: "Translate English to \(nativeLang).")
-                let translationResponse = try await translationSession.respond(
-                    to: output.translationEnglish,
-                    generating: TranslationOutput.self
-                )
-                let translated = translationResponse.content
+                let translationResponse = try await translationSession.respond(to: output.translationEnglish, generating: TranslationOutput.self)
 
                 withAnimation(.spring(duration: 0.4)) {
                     quiz = output
-                    translation = translated.translation
+                    translation = translationResponse.content.translation
                     bankTokens = tokens
                 }
             } catch LanguageModelSession.GenerationError.refusal(let refusal, _) {
                 do {
                     let content = try await Task.detached { try await refusal.explanation.content }.value
                     errorMessage = "[Refusal] \(content)"
-                } catch {
-                    errorMessage = "[Refusal] \(error.localizedDescription)"
-                }
+                } catch { errorMessage = "[Refusal] \(error.localizedDescription)" }
             } catch {
-                if (error as NSError).domain == "QuizValidation" {
-                    await Task.yield()
-                    generate()
-                    return
-                }
+                if (error as NSError).domain == "QuizValidation" { await Task.yield(); generate(); return }
                 errorMessage = error.localizedDescription
             }
-
             isGenerating = false
         }
     }
@@ -217,10 +183,8 @@ struct QuizView: View {
         Group {
             if #available(macOS 26.0, *) {
                 switch SystemLanguageModel.default.availability {
-                case .available:
-                    QuizContentView()
-                default:
-                    UnavailableView(reasonKey: "unavailable.aiUnavailable")
+                case .available: QuizContentView()
+                default:         UnavailableView(reasonKey: "unavailable.aiUnavailable")
                 }
             } else {
                 UnavailableView(reasonKey: "unavailable.osRequired")
@@ -242,23 +206,12 @@ private struct QuizContentView: View {
     var body: some View {
         ZStack {
             if viewModel.isGenerating && !isInputVisible {
-                AIGeneratingView(
-                    headline: L["button.generating"],
-                    subtitle: "問題を生成しています..."
-                )
-                .transition(.opacity)
+                GlowLoadingBar(subtitle: L["button.generating"] + "...")
+                    .transition(.opacity)
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
-
-                        if isInputVisible {
-                            screenTitle
-                                .transition(.opacity.combined(with: .move(edge: .top)))
-                        }
-
-                        if !viewModel.errorMessage.isEmpty {
-                            errorCard
-                        }
+                    VStack(spacing: 20) {
+                        if !viewModel.errorMessage.isEmpty { errorBanner }
 
                         if isInputVisible {
                             settingsCard
@@ -273,14 +226,14 @@ private struct QuizContentView: View {
                                 ))
 
                             if viewModel.isChecked {
-                                nextButtons
-                                    .transition(.opacity)
+                                nextButtons.transition(.opacity)
                             }
                         } else if !viewModel.isGenerating && isInputVisible {
                             promptPlaceholder
                         }
                     }
-                    .padding(.bottom, 24)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 20)
                     .animation(.spring(duration: 0.45), value: isInputVisible)
                     .animation(.spring(duration: 0.45), value: viewModel.quiz?.correctSentence)
                     .animation(.spring(duration: 0.3), value: viewModel.isChecked)
@@ -296,83 +249,53 @@ private struct QuizContentView: View {
         }
     }
 
-    // MARK: Screen Title
-
-    private var screenTitle: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(L["tab.quiz"])
-                .font(.system(size: 28, weight: .bold))
-                .foregroundStyle(.white)
-            Text("単語を並べて英文を完成させよう")
-                .font(.subheadline)
-                .foregroundStyle(Color.white.opacity(0.58))
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 4)
-    }
-
     // MARK: Settings Card
 
     private var settingsCard: some View {
-        VStack(spacing: 0) {
-            // Word hint
-            cardRow {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(L["input.wordLabel"])
-                        .font(.caption).fontWeight(.semibold)
-                        .foregroundStyle(Color.appCardSub)
-                    TextField(L["quiz.wordHintPlaceholder"], text: $viewModel.word)
-                        .font(.body)
-                        .foregroundStyle(Color.appCardText)
-                }
+        VStack(alignment: .leading, spacing: 20) {
+            Text("Today's Challenge")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(Color.cardSub)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(L["input.wordLabel"])
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.cardSub)
+                TextField(L["quiz.wordHintPlaceholder"], text: $viewModel.word)
+                    .font(.system(size: 16))
+                    .foregroundStyle(Color.cardText)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color(white: 0.96)))
             }
 
-            cardDivider
-
-            // Level
-            cardRow {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text(L["input.levelLabel"])
-                            .font(.caption).fontWeight(.semibold)
-                            .foregroundStyle(Color.appCardSub)
-                        Spacer()
-                        Text(L[viewModel.selectedLevel.descriptionKey])
-                            .font(.caption2)
-                            .foregroundStyle(Color.appCardSub)
-                    }
-                    Picker("", selection: $viewModel.selectedLevel) {
-                        ForEach(EnglishLevel.allCases) { level in
-                            Text(L[level.rawValue]).tag(level)
-                        }
-                    }
-                    .pickerStyle(.segmented)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text(L["input.levelLabel"])
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Color.cardSub)
+                    Spacer()
+                    Text(L[viewModel.selectedLevel.descriptionKey])
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.cardSub)
                 }
+                Picker("", selection: $viewModel.selectedLevel) {
+                    ForEach(EnglishLevel.allCases) { level in
+                        Text(L[level.rawValue]).tag(level)
+                    }
+                }
+                .pickerStyle(.segmented)
             }
-        }
-        .background(Color.white)
-        .cornerRadius(20)
-        .shadow(color: .black.opacity(0.18), radius: 14, y: 5)
-        .padding(.horizontal, 16)
-        .overlay(alignment: .bottom) {
+
             generateButton
-                .padding(.horizontal, 16)
-                .offset(y: 60)
         }
-        .padding(.bottom, 72)
-    }
-
-    private func cardRow<C: View>(@ViewBuilder content: () -> C) -> some View {
-        content()
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
-    }
-
-    private var cardDivider: some View {
-        Rectangle()
-            .fill(Color.appCardSub.opacity(0.15))
-            .frame(height: 0.5)
-            .padding(.horizontal, 16)
+        .padding(22)
+        .background(
+            RoundedRectangle(cornerRadius: 22)
+                .fill(Color.white.opacity(0.82))
+                .shadow(color: Color(red: 0.30, green: 0.50, blue: 0.75).opacity(0.20), radius: 20, x: 0, y: 8)
+                .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
+        )
     }
 
     private var generateButton: some View {
@@ -381,126 +304,87 @@ private struct QuizContentView: View {
                 if viewModel.isGenerating {
                     ProgressView().controlSize(.small).tint(.white)
                 } else {
-                    Image(systemName: "dice.fill")
-                        .font(.system(size: 15, weight: .semibold))
+                    Image(systemName: "dice.fill").font(.system(size: 14, weight: .semibold))
                 }
                 Text(viewModel.isGenerating ? L["button.generating"] : L["quiz.generateButton"])
                     .font(.system(size: 16, weight: .bold))
             }
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
-            .frame(height: 54)
+            .frame(height: 52)
             .background(
-                LinearGradient(
-                    colors: [Color.appBlue, Color.appBlueDark],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+                Capsule()
+                    .fill(LinearGradient(colors: [.btnBlue, .btnBlueDark], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .shadow(color: Color.btnBlue.opacity(0.40), radius: 12, y: 5)
             )
-            .cornerRadius(16)
-            .shadow(color: Color.appBlue.opacity(0.45), radius: 10, y: 4)
         }
         .buttonStyle(.plain)
         .disabled(viewModel.isGenerating)
         .opacity(viewModel.isGenerating ? 0.6 : 1.0)
     }
 
-    // MARK: Error Card
+    // MARK: Error Banner
 
-    private var errorCard: some View {
+    private var errorBanner: some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "exclamationmark.circle.fill").foregroundStyle(.red)
-            Text(viewModel.errorMessage)
-                .font(.subheadline)
-                .foregroundStyle(Color(red: 0.8, green: 0.1, blue: 0.1))
+            Image(systemName: "exclamationmark.circle.fill").foregroundStyle(Color(red: 0.85, green: 0.25, blue: 0.25))
+            Text(viewModel.errorMessage).font(.subheadline).foregroundStyle(Color(red: 0.75, green: 0.15, blue: 0.15))
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
-        .cornerRadius(16)
-        .padding(.horizontal, 16)
+        .background(RoundedRectangle(cornerRadius: 16).fill(Color.white.opacity(0.82)).shadow(color: .black.opacity(0.06), radius: 8, y: 3))
     }
 
     // MARK: Prompt Placeholder
 
     private var promptPlaceholder: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 16) {
             ZStack {
-                Circle()
-                    .fill(Color.white.opacity(0.10))
-                    .frame(width: 80, height: 80)
+                Circle().fill(Color.white.opacity(0.55)).frame(width: 72, height: 72)
                 Image(systemName: "text.word.spacing")
-                    .font(.system(size: 36))
-                    .foregroundStyle(Color.white.opacity(0.70))
+                    .font(.system(size: 30))
+                    .foregroundStyle(Color.btnBlue.opacity(0.70))
             }
-            VStack(spacing: 8) {
-                Text(L["quiz.prompt"])
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.white)
-                Text(L["quiz.promptDetail"])
-                    .font(.subheadline)
-                    .foregroundStyle(Color.white.opacity(0.55))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
+            VStack(spacing: 6) {
+                Text(L["quiz.prompt"]).font(.headline).fontWeight(.bold).foregroundStyle(Color.cardText)
+                Text(L["quiz.promptDetail"]).font(.subheadline).foregroundStyle(Color.cardSub)
+                    .multilineTextAlignment(.center).padding(.horizontal, 28)
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.top, 20)
+        .padding(.top, 16)
     }
 
     // MARK: Next / Reset Buttons
 
     private var nextButtons: some View {
-        VStack(spacing: 12) {
-            Button(action: {
-                viewModel.reset()
-                viewModel.generate()
-            }) {
+        VStack(spacing: 10) {
+            Button(action: { viewModel.reset(); viewModel.generate() }) {
                 HStack(spacing: 8) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 15, weight: .semibold))
-                    Text("次の問題")
-                        .font(.system(size: 16, weight: .bold))
+                    Image(systemName: "arrow.clockwise").font(.system(size: 14, weight: .semibold))
+                    Text("次の問題").font(.system(size: 16, weight: .bold))
                 }
                 .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .frame(height: 54)
+                .frame(maxWidth: .infinity).frame(height: 52)
                 .background(
-                    LinearGradient(
-                        colors: [Color.appBlue, Color.appBlueDark],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+                    Capsule()
+                        .fill(LinearGradient(colors: [.btnBlue, .btnBlueDark], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .shadow(color: Color.btnBlue.opacity(0.40), radius: 12, y: 5)
                 )
-                .cornerRadius(16)
-                .shadow(color: Color.appBlue.opacity(0.40), radius: 10, y: 4)
             }
             .buttonStyle(.plain)
 
-            Button(action: {
-                viewModel.reset()
-                withAnimation(.spring(duration: 0.45)) { isInputVisible = true }
-            }) {
+            Button(action: { viewModel.reset(); withAnimation(.spring(duration: 0.45)) { isInputVisible = true } }) {
                 HStack(spacing: 8) {
-                    Image(systemName: "house")
-                        .font(.system(size: 15, weight: .semibold))
-                    Text("設定に戻る")
-                        .font(.system(size: 16, weight: .semibold))
+                    Image(systemName: "slider.horizontal.3").font(.system(size: 14, weight: .semibold))
+                    Text("設定に戻る").font(.system(size: 15, weight: .semibold))
                 }
-                .foregroundStyle(Color.white.opacity(0.85))
-                .frame(maxWidth: .infinity)
-                .frame(height: 52)
-                .background(Color.white.opacity(0.14))
-                .cornerRadius(16)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.white.opacity(0.28), lineWidth: 1)
-                )
+                .foregroundStyle(Color.btnBlue)
+                .frame(maxWidth: .infinity).frame(height: 50)
+                .background(Capsule().fill(Color.white.opacity(0.75)).shadow(color: Color.btnBlue.opacity(0.15), radius: 10, y: 4))
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 16)
     }
 }
 
@@ -510,63 +394,41 @@ private struct QuizContentView: View {
 private struct WordOrderCard: View {
     let viewModel: QuizViewModel
     let modelContext: ModelContext
-
     @Environment(LocalizationManager.self) private var L
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-
-            // Question card (white)
+        VStack(spacing: 14) {
+            // Question card
             if viewModel.quiz != nil {
-                VStack(alignment: .leading, spacing: 0) {
-                    // Header
-                    HStack(spacing: 6) {
-                        Image(systemName: "text.word.spacing")
-                            .font(.caption)
-                            .foregroundStyle(Color.appBlue)
-                        Text(L["quiz.questionLabel"])
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundStyle(Color.appBlue)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 18)
-                    .padding(.bottom, 10)
-
-                    Rectangle()
-                        .fill(Color.appCardSub.opacity(0.12))
-                        .frame(height: 0.5)
-                        .padding(.horizontal, 16)
-
-                    // Translation / question sentence
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(viewModel.translation)
-                            .font(.body)
-                            .fontWeight(.medium)
-                            .foregroundStyle(Color.appCardText)
-                            .textSelection(.enabled)
-                        Text(L["quiz.instruction"])
-                            .font(.caption)
-                            .foregroundStyle(Color.appCardSub)
-                    }
-                    .padding(20)
+                VStack(alignment: .leading, spacing: 12) {
+                    Label(L["quiz.questionLabel"], systemImage: "text.word.spacing")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Color.btnBlue)
+                    Text(viewModel.translation)
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(Color.cardText)
+                        .textSelection(.enabled)
+                    Text(L["quiz.instruction"])
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.cardSub)
                 }
-                .background(Color.white)
-                .cornerRadius(20)
-                .shadow(color: .black.opacity(0.16), radius: 12, y: 4)
-                .padding(.horizontal, 16)
+                .padding(20)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color.white.opacity(0.82))
+                        .shadow(color: Color(red: 0.30, green: 0.50, blue: 0.75).opacity(0.18), radius: 16, x: 0, y: 6)
+                        .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
+                )
             }
 
-            // Word bank + answer area (hidden after check)
+            // Word bank + answer (hidden after check)
             if !viewModel.isChecked {
                 // Bank
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 10) {
                     Text(L["quiz.bankLabel"])
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundStyle(Color.white.opacity(0.65))
-                        .padding(.horizontal, 20)
-
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Color.cardSub)
                     WrapLayout(spacing: 8) {
                         ForEach(viewModel.bankTokens) { token in
                             QuizWordChip(word: token.word, style: .bank) {
@@ -574,27 +436,30 @@ private struct WordOrderCard: View {
                             }
                         }
                     }
-                    .frame(minHeight: 40)
-                    .padding(.horizontal, 16)
+                    .frame(minHeight: 36)
                 }
+                .padding(18)
+                .background(
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(Color.white.opacity(0.82))
+                        .shadow(color: Color(red: 0.30, green: 0.50, blue: 0.75).opacity(0.12), radius: 12, x: 0, y: 4)
+                )
 
                 // Answer area
                 VStack(alignment: .leading, spacing: 10) {
                     Text(L["quiz.answerLabel"])
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundStyle(Color.white.opacity(0.65))
-                        .padding(.horizontal, 20)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Color.cardSub)
 
                     ZStack(alignment: .topLeading) {
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(Color.white.opacity(0.10))
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(white: 0.96))
                             .overlay(
-                                RoundedRectangle(cornerRadius: 14)
+                                RoundedRectangle(cornerRadius: 12)
                                     .stroke(
                                         viewModel.placedTokens.isEmpty
-                                            ? Color.white.opacity(0.20)
-                                            : Color.appBlue.opacity(0.55),
+                                            ? Color.cardSub.opacity(0.20)
+                                            : Color.btnBlue.opacity(0.45),
                                         lineWidth: 1.5
                                     )
                             )
@@ -602,8 +467,8 @@ private struct WordOrderCard: View {
                         if viewModel.placedTokens.isEmpty {
                             Text(L["quiz.answerPlaceholder"])
                                 .font(.subheadline)
-                                .foregroundStyle(Color.white.opacity(0.35))
-                                .padding(14)
+                                .foregroundStyle(Color.cardSub.opacity(0.60))
+                                .padding(12)
                         } else {
                             WrapLayout(spacing: 8) {
                                 ForEach(viewModel.placedTokens) { token in
@@ -615,40 +480,39 @@ private struct WordOrderCard: View {
                             .padding(10)
                         }
                     }
-                    .frame(minHeight: 56)
-                    .padding(.horizontal, 16)
+                    .frame(minHeight: 52)
                 }
+                .padding(18)
+                .background(
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(Color.white.opacity(0.82))
+                        .shadow(color: Color(red: 0.30, green: 0.50, blue: 0.75).opacity(0.12), radius: 12, x: 0, y: 4)
+                )
 
                 // Check button
                 Button(action: { viewModel.checkAnswer(modelContext: modelContext) }) {
                     Text(L["quiz.checkButton"])
                         .font(.system(size: 16, weight: .bold))
                         .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 54)
+                        .frame(maxWidth: .infinity).frame(height: 52)
                         .background(
-                            viewModel.allPlaced
-                                ? LinearGradient(colors: [Color.appBlue, Color.appBlueDark], startPoint: .topLeading, endPoint: .bottomTrailing)
-                                : LinearGradient(colors: [Color.white.opacity(0.18), Color.white.opacity(0.12)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                            Capsule()
+                                .fill(
+                                    viewModel.allPlaced
+                                        ? LinearGradient(colors: [.btnBlue, .btnBlueDark], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                        : LinearGradient(colors: [Color.cardSub.opacity(0.35), Color.cardSub.opacity(0.25)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                )
+                                .shadow(color: viewModel.allPlaced ? Color.btnBlue.opacity(0.38) : .clear, radius: 10, y: 4)
                         )
-                        .cornerRadius(16)
-                        .shadow(color: viewModel.allPlaced ? Color.appBlue.opacity(0.40) : .clear, radius: 10, y: 4)
                 }
                 .buttonStyle(.plain)
                 .disabled(!viewModel.allPlaced)
-                .padding(.horizontal, 16)
             }
 
             // Result
             if viewModel.isChecked, let quiz = viewModel.quiz {
-                QuizResultSection(
-                    quiz: quiz,
-                    userSentence: viewModel.userSentence,
-                    isCorrect: viewModel.isCorrect,
-                    translation: viewModel.translation
-                )
-                .transition(.opacity.combined(with: .move(edge: .bottom)))
-                .padding(.horizontal, 16)
+                QuizResultSection(quiz: quiz, userSentence: viewModel.userSentence, isCorrect: viewModel.isCorrect, translation: viewModel.translation)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
         }
         .animation(.spring(duration: 0.3), value: viewModel.bankTokens.count)
@@ -665,19 +529,13 @@ private struct QuizResultSection: View {
     let userSentence: String
     let isCorrect: Bool
     let translation: String
-
     @Environment(LocalizationManager.self) private var L
 
-    private var accent: Color { isCorrect ? Color(red: 0.15, green: 0.72, blue: 0.45) : Color(red: 0.90, green: 0.25, blue: 0.25) }
+    private var accent: Color { isCorrect ? Color(red: 0.12, green: 0.68, blue: 0.40) : Color(red: 0.88, green: 0.22, blue: 0.22) }
     private var badgeIcon: String { isCorrect ? "checkmark.circle.fill" : "xmark.circle.fill" }
 
     private func searchInSafari() {
-        let query = """
-            問題文: \(translation)
-            自分の回答: \(userSentence)
-            正答: \(quiz.correctSentence)
-            この問題を解説、ポイントを教えてください
-            """
+        let query = "問題文: \(translation)\n自分の回答: \(userSentence)\n正答: \(quiz.correctSentence)\nこの問題を解説、ポイントを教えてください"
         if let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
            let url = URL(string: "https://www.google.com/search?q=\(encoded)&udm=50") {
             #if os(iOS)
@@ -690,75 +548,48 @@ private struct QuizResultSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Result banner
-            HStack(spacing: 10) {
-                Image(systemName: badgeIcon)
-                    .font(.title3)
-                    .foregroundStyle(accent)
+            HStack(spacing: 8) {
+                Image(systemName: badgeIcon).font(.title3).foregroundStyle(accent)
                 Text(isCorrect ? L["quiz.correct"] : L["quiz.incorrect"])
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundStyle(accent)
+                    .font(.headline).fontWeight(.bold).foregroundStyle(accent)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 20)
-            .padding(.bottom, 14)
+            .padding(.horizontal, 20).padding(.top, 18).padding(.bottom, 12)
 
-            Rectangle()
-                .fill(Color.appCardSub.opacity(0.12))
-                .frame(height: 0.5)
-                .padding(.horizontal, 16)
+            Divider().padding(.horizontal, 14)
 
-            // Your answer
             VStack(alignment: .leading, spacing: 6) {
-                Text(L["quiz.yourSentenceLabel"])
-                    .font(.caption).fontWeight(.semibold)
-                    .foregroundStyle(Color.appCardSub)
-                Text(userSentence)
-                    .font(.body)
-                    .textSelection(.enabled)
-                    .foregroundStyle(isCorrect ? Color.appCardText : accent)
+                Text(L["quiz.yourSentenceLabel"]).font(.caption).fontWeight(.semibold).foregroundStyle(Color.cardSub)
+                Text(userSentence).font(.body).textSelection(.enabled)
+                    .foregroundStyle(isCorrect ? Color.cardText : accent)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 14)
+            .padding(.horizontal, 20).padding(.vertical, 12)
 
-            Rectangle()
-                .fill(Color.appCardSub.opacity(0.12))
-                .frame(height: 0.5)
-                .padding(.horizontal, 16)
+            Divider().padding(.horizontal, 14)
 
-            // Correct answer
             VStack(alignment: .leading, spacing: 6) {
-                Text(L["quiz.correctSentenceLabel"])
-                    .font(.caption).fontWeight(.semibold)
-                    .foregroundStyle(Color.appCardSub)
-                Text(quiz.correctSentence)
-                    .font(.body)
-                    .textSelection(.enabled)
-                    .foregroundStyle(Color(red: 0.15, green: 0.65, blue: 0.40))
+                Text(L["quiz.correctSentenceLabel"]).font(.caption).fontWeight(.semibold).foregroundStyle(Color.cardSub)
+                Text(quiz.correctSentence).font(.body).textSelection(.enabled)
+                    .foregroundStyle(Color(red: 0.12, green: 0.60, blue: 0.38))
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 14)
+            .padding(.horizontal, 20).padding(.vertical, 12)
 
-            // Search button
             Button(action: { searchInSafari() }) {
                 HStack(spacing: 6) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 14))
-                    Text(L["quiz.searchButton"])
-                        .font(.subheadline).fontWeight(.medium)
+                    Image(systemName: "magnifyingglass").font(.system(size: 13))
+                    Text(L["quiz.searchButton"]).font(.subheadline).fontWeight(.medium)
                 }
-                .foregroundStyle(Color.appBlue)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(Color.appBlue.opacity(0.08))
+                .foregroundStyle(Color.btnBlue)
+                .frame(maxWidth: .infinity).padding(.vertical, 14)
+                .background(Color.btnBlue.opacity(0.07))
             }
             .buttonStyle(.plain)
-            .cornerRadius(0)
         }
-        .background(Color.white)
-        .cornerRadius(20)
-        .shadow(color: .black.opacity(0.16), radius: 12, y: 4)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color.white.opacity(0.82))
+                .shadow(color: Color(red: 0.30, green: 0.50, blue: 0.75).opacity(0.18), radius: 16, x: 0, y: 6)
+                .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
+        )
     }
 }
 
@@ -769,39 +600,26 @@ private struct WrapLayout: Layout {
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) -> CGSize {
         let maxWidth = proposal.width ?? .infinity
-        var height: CGFloat = 0
-        var rowWidth: CGFloat = 0
-        var rowHeight: CGFloat = 0
-
+        var height: CGFloat = 0; var rowWidth: CGFloat = 0; var rowHeight: CGFloat = 0
         for subview in subviews {
             let size = subview.sizeThatFits(.unspecified)
             if rowWidth + size.width > maxWidth, rowWidth > 0 {
-                height += rowHeight + spacing
-                rowWidth = 0
-                rowHeight = 0
+                height += rowHeight + spacing; rowWidth = 0; rowHeight = 0
             }
-            rowWidth += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
+            rowWidth += size.width + spacing; rowHeight = max(rowHeight, size.height)
         }
-        height += rowHeight
-        return CGSize(width: maxWidth, height: height)
+        return CGSize(width: maxWidth, height: height + rowHeight)
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) {
-        var x = bounds.minX
-        var y = bounds.minY
-        var rowHeight: CGFloat = 0
-
+        var x = bounds.minX; var y = bounds.minY; var rowHeight: CGFloat = 0
         for subview in subviews {
             let size = subview.sizeThatFits(.unspecified)
             if x + size.width > bounds.maxX, x > bounds.minX {
-                x = bounds.minX
-                y += rowHeight + spacing
-                rowHeight = 0
+                x = bounds.minX; y += rowHeight + spacing; rowHeight = 0
             }
             subview.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
-            x += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
+            x += size.width + spacing; rowHeight = max(rowHeight, size.height)
         }
     }
 }
@@ -810,7 +628,6 @@ private struct WrapLayout: Layout {
 
 private struct QuizWordChip: View {
     enum ChipStyle { case bank, placed }
-
     let word: String
     let style: ChipStyle
     let action: () -> Void
@@ -818,34 +635,32 @@ private struct QuizWordChip: View {
     var body: some View {
         Button(action: action) {
             Text(word)
-                .font(.system(size: 15, weight: .medium))
+                .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(textColor)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
                 .background(bgColor, in: Capsule())
-                .overlay(
-                    Capsule().stroke(borderColor, lineWidth: 1.5)
-                )
+                .overlay(Capsule().stroke(borderColor, lineWidth: 1.5))
         }
         .buttonStyle(.plain)
     }
 
     private var bgColor: Color {
         switch style {
-        case .bank:   return Color.white.opacity(0.14)
-        case .placed: return Color.appBlue.opacity(0.18)
+        case .bank:   return Color.white.opacity(0.80)
+        case .placed: return Color.btnBlue.opacity(0.12)
         }
     }
     private var borderColor: Color {
         switch style {
-        case .bank:   return Color.white.opacity(0.30)
-        case .placed: return Color.appBlue.opacity(0.60)
+        case .bank:   return Color.cardSub.opacity(0.30)
+        case .placed: return Color.btnBlue.opacity(0.50)
         }
     }
     private var textColor: Color {
         switch style {
-        case .bank:   return Color.white.opacity(0.90)
-        case .placed: return Color.white
+        case .bank:   return Color.cardText
+        case .placed: return Color.btnBlue
         }
     }
 }

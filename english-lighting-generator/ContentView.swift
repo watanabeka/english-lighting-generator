@@ -21,7 +21,6 @@ struct SentenceOutput {
     var normalisedEnglishWord: String
 }
 
-// Simple translation output
 @available(macOS 26.0, *)
 @Generable
 struct SimpleTranslation {
@@ -37,14 +36,6 @@ enum SentenceLength: String, CaseIterable, Identifiable {
     case long   = "sentenceLength.long"
 
     var id: String { rawValue }
-
-    var englishName: String {
-        switch self {
-        case .short:  return "Short"
-        case .normal: return "Normal"
-        case .long:   return "Long"
-        }
-    }
 
     var instruction: String {
         switch self {
@@ -90,50 +81,15 @@ enum EnglishLevel: String, CaseIterable, Identifiable {
     var instruction: String {
         switch self {
         case .level1:
-            return """
-                Level 1 — Eiken Grade 4-5 / TOEIC under 300 (A1 beginner).
-                Vocabulary: only the most basic everyday words (family, food, animals, colours, numbers, simple actions: go, eat, have, like, want, see, use, play).
-                Grammar: present simple tense only; "can" for ability is acceptable.
-                Structure: simple Subject + Verb + Object; one clause only; 6-10 words.
-                AVOID: past tense, future tense, modal verbs (except "can"), relative clauses, idioms, phrasal verbs, or any word a complete beginner would not know.
-                Example style: "I use a computer at school every day."
-                """
+            return "Level 1 — Eiken Grade 4-5 / TOEIC under 300 (A1 beginner). Vocabulary: only the most basic everyday words. Grammar: present simple tense only. Structure: simple S+V+O; one clause only; 6-10 words."
         case .level2:
-            return """
-                Level 2 — Eiken Grade 3 / TOEIC 300-500 (A2 elementary).
-                Vocabulary: common everyday words plus simple topic words (school subjects, hobbies, weather, shopping, travel); short adjectives and adverbs.
-                Grammar: past simple, future (will / going to), present continuous; basic connectors (and, but, because, so, when).
-                Structure: compound sentences with two short clauses; 10-16 words.
-                AVOID: relative clauses, perfect tenses, passive voice, conditionals, idioms, or academic vocabulary.
-                Example style: "She studied hard because she wanted to pass the exam."
-                """
+            return "Level 2 — Eiken Grade 3 / TOEIC 300-500 (A2 elementary). Vocabulary: common everyday words. Grammar: past simple, future, present continuous; basic connectors. Structure: 10-16 words."
         case .level3:
-            return """
-                Level 3 — Eiken Grade Pre-2 to 2 / TOEIC 500-650 (B1-B2 intermediate).
-                Vocabulary: wider everyday and topic-specific vocabulary (environment, technology, health, society); include one or two words slightly above basic level.
-                Grammar: present perfect, past perfect, passive voice, relative clauses (who/which/that), second conditional (if + past + would), modals (should, must, might, could).
-                Structure: complex sentences with one or two subordinate clauses; 16-24 words.
-                AVOID: subjunctive mood, inversion, cleft sentences, or C-level academic/literary vocabulary.
-                Example style: "The report, which was released last month, has significantly changed the policies that many companies are now following."
-                """
+            return "Level 3 — Eiken Grade Pre-2 to 2 / TOEIC 500-650 (B1-B2 intermediate). Grammar: present perfect, passive voice, relative clauses, conditionals. Structure: 16-24 words."
         case .level4:
-            return """
-                Level 4 — Eiken Grade Pre-1 / TOEIC 650-800 (B2-C1 upper-intermediate).
-                Vocabulary: academic and professional vocabulary (analyse, consequence, perspective, demonstrate, contribute, fundamental, facilitate, inevitable).
-                Grammar: third conditional, reported speech, passive in various tenses, participle phrases (having done..., given that..., compared with...), advanced modals.
-                Structure: sophisticated multi-clause sentences with clear logical and rhetorical flow; 22-32 words.
-                AVOID: inverted structures (Rarely has...), subjunctive (were it not for...), or highly literary vocabulary.
-                Example style: "Had the government introduced stricter regulations earlier, many of the environmental consequences that society is currently grappling with could have been avoided."
-                """
+            return "Level 4 — Eiken Grade Pre-1 / TOEIC 650-800 (B2-C1 upper-intermediate). Vocabulary: academic and professional. Grammar: third conditional, participle phrases, advanced modals. Structure: 22-32 words."
         case .level5:
-            return """
-                Level 5 — Eiken Grade 1 / TOEIC 800+ (C1-C2 advanced).
-                Vocabulary: sophisticated and precise — naturally use words such as "nuanced", "ephemeral", "juxtapose", "ostensibly", "precipitate", "reconcile", "ubiquitous", or equivalents suited to the target word's domain.
-                Grammar: subjunctive mood (were it not for...), inversion (Rarely has..., Not only did..., Had I known...), participle clauses (Having considered..., Confronted with...), cleft sentences (It is ... that ...).
-                Style: varied sentence rhythm and rhetorical elegance — quality journalism, academic writing, or literary non-fiction level.
-                AVOID: simple or predictable structures; every sentence must demonstrate clear C-level linguistic sophistication.
-                Example style: "Rarely has a single technological breakthrough so profoundly reshaped the way societies communicate as the advent of the internet did."
-                """
+            return "Level 5 — Eiken Grade 1 / TOEIC 800+ (C1-C2 advanced). Vocabulary: sophisticated and precise. Grammar: subjunctive, inversion, cleft sentences. Style: C-level sophistication."
         }
     }
 
@@ -180,10 +136,8 @@ class AppViewModel {
 
             let systemPrompt = """
                 Create an English example sentence.
-
                 Level \(level.englishName.replacingOccurrences(of: "Level ", with: "")): \(level.englishDescription)
                 Length: \(sentenceLength.instruction)
-
                 Use target word(s) naturally. Return: englishSentence, normalisedEnglishWord.
                 """
 
@@ -197,9 +151,7 @@ class AppViewModel {
 
                 let inputWords = word.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
                 let sentenceLower = content.englishSentence.lowercased()
-                let allWordsIncluded = inputWords.allSatisfy { inputWord in
-                    !inputWord.isEmpty && sentenceLower.contains(inputWord)
-                }
+                let allWordsIncluded = inputWords.allSatisfy { !$0.isEmpty && sentenceLower.contains($0) }
 
                 guard allWordsIncluded else {
                     generate(modelContext: modelContext)
@@ -242,13 +194,19 @@ class AppViewModel {
 // MARK: - Design System
 
 extension Color {
-    static let appNavyDeep  = Color(red: 0.052, green: 0.076, blue: 0.258)
-    static let appNavyMid   = Color(red: 0.088, green: 0.126, blue: 0.368)
-    static let appTabBg     = Color(red: 0.036, green: 0.054, blue: 0.188)
-    static let appBlue      = Color(red: 0.260, green: 0.440, blue: 0.940)
-    static let appBlueDark  = Color(red: 0.180, green: 0.350, blue: 0.840)
-    static let appCardText  = Color(red: 0.130, green: 0.130, blue: 0.240)
-    static let appCardSub   = Color(red: 0.440, green: 0.460, blue: 0.580)
+    // Sky-blue light palette (matches reference image)
+    static let skyTop      = Color(red: 0.50, green: 0.67, blue: 0.86)
+    static let skyMid      = Color(red: 0.70, green: 0.83, blue: 0.93)
+    static let skyBottom   = Color(red: 0.87, green: 0.93, blue: 0.98)
+    static let skyTabBar   = Color(red: 0.52, green: 0.69, blue: 0.86)
+
+    // Card & text
+    static let cardText    = Color(red: 0.18, green: 0.24, blue: 0.42)
+    static let cardSub     = Color(red: 0.48, green: 0.56, blue: 0.72)
+
+    // Button
+    static let btnBlue     = Color(red: 0.22, green: 0.40, blue: 0.72)
+    static let btnBlueDark = Color(red: 0.15, green: 0.30, blue: 0.60)
 }
 
 // MARK: - App Background
@@ -256,262 +214,97 @@ extension Color {
 struct AppBackground: View {
     var body: some View {
         ZStack {
+            // Base sky gradient
             LinearGradient(
-                colors: [.appNavyDeep, .appNavyMid],
+                colors: [.skyTop, .skyMid, .skyBottom],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
 
-            // Stars / particle field
-            StarfieldView()
-
-            // Top-left corner ambient glow
+            // Central cloud/haze glow
             RadialGradient(
-                colors: [Color.white.opacity(0.09), .clear],
-                center: .topLeading,
-                startRadius: 0,
-                endRadius: 320
+                colors: [Color.white.opacity(0.65), Color.white.opacity(0.10), .clear],
+                center: UnitPoint(x: 0.70, y: 0.36),
+                startRadius: 20,
+                endRadius: 260
             )
 
-            // Diagonal light beam
-            GeometryReader { geo in
-                Rectangle()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                .clear,
-                                Color.white.opacity(0.055),
-                                Color.appBlue.opacity(0.09),
-                                .clear
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: geo.size.width * 2, height: 240)
-                    .rotationEffect(.degrees(-28))
-                    .offset(y: geo.size.height * 0.22)
-                    .blur(radius: 18)
-            }
-
-            // Bottom center glow
+            // Top-right soft highlight
             RadialGradient(
-                colors: [Color.appBlue.opacity(0.38), .clear],
-                center: UnitPoint(x: 0.5, y: 1.1),
-                startRadius: 10,
-                endRadius: 380
+                colors: [Color.white.opacity(0.30), .clear],
+                center: .topTrailing,
+                startRadius: 0,
+                endRadius: 200
+            )
+
+            // Bottom ambient
+            RadialGradient(
+                colors: [Color(red: 0.55, green: 0.75, blue: 0.95).opacity(0.25), .clear],
+                center: .bottom,
+                startRadius: 0,
+                endRadius: 300
             )
         }
         .ignoresSafeArea()
     }
 }
 
-// MARK: - Starfield
+// MARK: - Glow Loading Bar (replaces robot mascot)
 
-private struct StarfieldView: View {
-    private struct Star: Identifiable {
-        let id: Int
-        let x, y, size: CGFloat
-        let opacity: Double
-    }
-
-    private let stars: [Star] = (0..<55).map { i in
-        Star(
-            id: i,
-            x: CGFloat.random(in: 0...1),
-            y: CGFloat.random(in: 0...1),
-            size: CGFloat.random(in: 1.0...2.8),
-            opacity: Double.random(in: 0.12...0.50)
-        )
-    }
-
-    var body: some View {
-        GeometryReader { geo in
-            ForEach(stars) { s in
-                Circle()
-                    .fill(Color.white.opacity(s.opacity))
-                    .frame(width: s.size, height: s.size)
-                    .position(x: s.x * geo.size.width, y: s.y * geo.size.height)
-            }
-        }
-    }
-}
-
-// MARK: - Robot Mascot
-
-struct RobotMascotView: View {
-    var size: CGFloat = 88
-    @State private var pulse = false
-
-    var body: some View {
-        ZStack {
-            // Outer pulse ring
-            Circle()
-                .stroke(Color.appBlue.opacity(0.45), lineWidth: 1.5)
-                .frame(width: size * 1.95, height: size * 1.95)
-                .scaleEffect(pulse ? 1.14 : 1.0)
-                .opacity(pulse ? 0.18 : 0.50)
-                .animation(.easeInOut(duration: 1.9).repeatForever(autoreverses: true), value: pulse)
-
-            // Inner glow
-            Circle()
-                .fill(Color.appBlue.opacity(0.20))
-                .frame(width: size * 1.35, height: size * 1.35)
-                .blur(radius: 20)
-                .scaleEffect(pulse ? 1.10 : 0.94)
-                .animation(.easeInOut(duration: 2.3).repeatForever(autoreverses: true), value: pulse)
-
-            // Antenna
-            VStack(spacing: 0) {
-                Circle()
-                    .fill(Color.white)
-                    .frame(width: size * 0.14, height: size * 0.14)
-                    .shadow(color: Color.appBlue, radius: 6)
-                Rectangle()
-                    .fill(Color.white.opacity(0.55))
-                    .frame(width: 2, height: size * 0.26)
-            }
-            .offset(y: -(size * 0.48 + size * 0.20))
-
-            // Head
-            ZStack {
-                RoundedRectangle(cornerRadius: size * 0.24)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.white.opacity(0.22), Color.white.opacity(0.09)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: size * 0.24)
-                            .stroke(Color.white.opacity(0.44), lineWidth: 1.5)
-                    )
-                    .frame(width: size, height: size * 0.96)
-
-                VStack(spacing: size * 0.10) {
-                    HStack(spacing: size * 0.22) {
-                        robotEye
-                        robotEye
-                    }
-                    HStack(spacing: 3) {
-                        ForEach(0..<4) { _ in
-                            Capsule()
-                                .fill(Color.white.opacity(0.72))
-                                .frame(width: size * 0.085, height: size * 0.058)
-                        }
-                    }
-                }
-            }
-        }
-        .onAppear { pulse = true }
-    }
-
-    private var robotEye: some View {
-        ZStack {
-            Circle().fill(Color.white)
-                .frame(width: size * 0.21, height: size * 0.21)
-            Circle().fill(Color.appBlue)
-                .frame(width: size * 0.12, height: size * 0.12)
-            Circle().fill(Color.white.opacity(0.85))
-                .frame(width: size * 0.055, height: size * 0.055)
-                .offset(x: -size * 0.032, y: -size * 0.032)
-        }
-    }
-}
-
-// MARK: - AI Generating View
-
-struct AIGeneratingView: View {
-    var headline: String
+struct GlowLoadingBar: View {
     var subtitle: String
-    @State private var animated = false
+    @State private var phase: CGFloat = 0
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Title at top
-            Text(headline)
-                .font(.system(size: 28, weight: .bold))
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
+        VStack(spacing: 18) {
+            // Sweeping light bar
+            GeometryReader { geo in
+                let w = geo.size.width
+                let streakW = w * 0.38
+                let span = w + streakW
 
-            Spacer()
-
-            RobotMascotView(size: 90)
-
-            Spacer()
-
-            VStack(spacing: 14) {
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule()
-                            .fill(Color.white.opacity(0.14))
-                            .frame(height: 5)
-                        Capsule()
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color.white.opacity(0.80), Color.appBlue],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .frame(width: geo.size.width * (animated ? 0.80 : 0.22), height: 5)
-                            .animation(
-                                .easeInOut(duration: 1.6).repeatForever(autoreverses: true),
-                                value: animated
-                            )
-                    }
-                }
-                .frame(height: 5)
-                .padding(.horizontal, 48)
-
-                Text(subtitle)
-                    .font(.footnote)
-                    .foregroundStyle(Color.white.opacity(0.55))
-            }
-            .padding(.bottom, 36)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onAppear { animated = true }
-    }
-}
-
-// MARK: - App Header
-
-struct AppHeaderView: View {
-    var title: String = "Hello!"
-
-    var body: some View {
-        HStack(spacing: 10) {
-            HStack(spacing: 9) {
                 ZStack {
-                    Circle()
-                        .fill(Color.white.opacity(0.16))
-                        .frame(width: 34, height: 34)
-                    Image(systemName: "cpu.fill")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.white)
+                    // Track
+                    Capsule()
+                        .fill(Color.white.opacity(0.20))
+                        .frame(width: w, height: 5)
+
+                    // Glow streak
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    .clear,
+                                    Color.white.opacity(0.60),
+                                    Color.white,
+                                    Color.white.opacity(0.60),
+                                    .clear
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: streakW, height: 5)
+                        .shadow(color: .white, radius: 8, x: 0, y: 0)
+                        .shadow(color: Color(red: 0.55, green: 0.75, blue: 1.0).opacity(0.90), radius: 18, x: 0, y: 0)
+                        .offset(x: phase * span - span / 2)
                 }
-                Text(title)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(.white)
+                .frame(width: w, height: 14, alignment: .center)
+                .clipped()
             }
+            .frame(height: 14)
+            .padding(.horizontal, 44)
 
-            Spacer()
-
-            HStack(spacing: 18) {
-                Image(systemName: "bell")
-                    .font(.system(size: 17))
-                    .foregroundStyle(Color.white.opacity(0.72))
-                Image(systemName: "arrow.2.squarepath")
-                    .font(.system(size: 17))
-                    .foregroundStyle(Color.white.opacity(0.72))
+            Text(subtitle)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(Color.white.opacity(0.75))
+        }
+        .frame(maxWidth: .infinity)
+        .onAppear {
+            withAnimation(.linear(duration: 1.55).repeatForever(autoreverses: false)) {
+                phase = 1.0
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
     }
 }
 
@@ -523,10 +316,10 @@ struct CustomTabBar: View {
 
     private var items: [(String, String, String)] {
         [
-            ("house",           "house.fill",         L["tab.aiSentence"]),
-            ("text.word.spacing", "text.word.spacing", L["tab.quiz"]),
-            ("chart.bar",       "chart.bar.fill",     L["tab.history"]),
-            ("gearshape",       "gearshape.fill",     L["tab.settings"])
+            ("house",             "house.fill",         L["tab.aiSentence"]),
+            ("text.word.spacing", "text.word.spacing",  L["tab.quiz"]),
+            ("chart.bar",         "chart.bar.fill",     L["tab.history"]),
+            ("gearshape",         "gearshape.fill",     L["tab.settings"])
         ]
     }
 
@@ -540,11 +333,11 @@ struct CustomTabBar: View {
                 }) {
                     VStack(spacing: 4) {
                         Image(systemName: isOn ? activeIcon : icon)
-                            .font(.system(size: 21, weight: isOn ? .semibold : .regular))
+                            .font(.system(size: 20, weight: isOn ? .semibold : .regular))
                         Text(label)
                             .font(.system(size: 10, weight: isOn ? .semibold : .regular))
                     }
-                    .foregroundStyle(isOn ? Color.white : Color.white.opacity(0.36))
+                    .foregroundStyle(isOn ? Color.white : Color.white.opacity(0.50))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
                     .contentShape(Rectangle())
@@ -553,10 +346,10 @@ struct CustomTabBar: View {
             }
         }
         .frame(height: 56)
-        .background(Color.appTabBg)
+        .background(Color.skyTabBar)
         .overlay(alignment: .top) {
             Rectangle()
-                .fill(Color.white.opacity(0.14))
+                .fill(Color.white.opacity(0.30))
                 .frame(height: 0.5)
         }
     }
@@ -573,29 +366,25 @@ struct ContentView: View {
         ZStack {
             AppBackground()
 
-            VStack(spacing: 0) {
-                AppHeaderView()
-
-                ZStack {
-                    if selectedTab == 0 {
-                        if #available(macOS 26.0, *) {
-                            AvailabilityGateView(prefillWord: $prefillWord)
-                        } else {
-                            UnavailableView(reasonKey: "unavailable.osRequired")
-                        }
-                    } else if selectedTab == 1 {
-                        QuizView()
-                    } else if selectedTab == 2 {
-                        AnalyticsView(onSelectWord: { word in
-                            prefillWord = word
-                            selectedTab = 0
-                        })
+            ZStack {
+                if selectedTab == 0 {
+                    if #available(macOS 26.0, *) {
+                        AvailabilityGateView(prefillWord: $prefillWord)
                     } else {
-                        SettingsView()
+                        UnavailableView(reasonKey: "unavailable.osRequired")
                     }
+                } else if selectedTab == 1 {
+                    QuizView()
+                } else if selectedTab == 2 {
+                    AnalyticsView(onSelectWord: { word in
+                        prefillWord = word
+                        selectedTab = 0
+                    })
+                } else {
+                    SettingsView()
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             CustomTabBar(selectedTab: $selectedTab)
@@ -631,19 +420,19 @@ struct UnavailableView: View {
         VStack(spacing: 28) {
             ZStack {
                 Circle()
-                    .fill(Color.orange.opacity(0.18))
+                    .fill(Color.white.opacity(0.55))
                     .frame(width: 90, height: 90)
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 42))
-                    .foregroundStyle(.orange)
+                    .font(.system(size: 40))
+                    .foregroundStyle(Color(red: 0.85, green: 0.55, blue: 0.20))
             }
             VStack(spacing: 10) {
                 Text(L["unavailable.title"])
                     .font(.system(size: 22, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.cardText)
                 Text(L[reasonKey])
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(Color.white.opacity(0.60))
+                    .foregroundStyle(Color.cardSub)
                     .font(.subheadline)
                     .padding(.horizontal, 32)
             }
@@ -665,27 +454,18 @@ struct GeneratorView: View {
     var body: some View {
         ZStack {
             if viewModel.isGenerating && !isInputVisible {
-                AIGeneratingView(
-                    headline: L["button.generating"],
-                    subtitle: "AIが英文を生成しています..."
-                )
-                .transition(.opacity)
+                GlowLoadingBar(subtitle: L["button.generating"] + "...")
+                    .transition(.opacity)
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
-
-                        if isInputVisible {
-                            screenTitle
-                                .transition(.opacity.combined(with: .move(edge: .top)))
-                        }
-
+                    VStack(spacing: 20) {
                         if isInputVisible {
                             inputCard
                                 .transition(.move(edge: .top).combined(with: .opacity))
                         }
 
                         if !viewModel.errorMessage.isEmpty {
-                            errorCard
+                            errorBanner
                         }
 
                         if !viewModel.englishResult.isEmpty {
@@ -695,7 +475,8 @@ struct GeneratorView: View {
                                 .transition(.opacity)
                         }
                     }
-                    .padding(.bottom, 24)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 20)
                     .animation(.spring(duration: 0.45), value: isInputVisible)
                     .animation(.spring(duration: 0.45), value: viewModel.englishResult.isEmpty)
                     .animation(.easeInOut(duration: 0.25), value: viewModel.errorMessage)
@@ -717,282 +498,220 @@ struct GeneratorView: View {
         }
     }
 
-    // MARK: Screen Title
-
-    private var screenTitle: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(L["tab.aiSentence"])
-                .font(.system(size: 28, weight: .bold))
-                .foregroundStyle(.white)
-            Text("単語を入力してAIが英文を生成します")
-                .font(.subheadline)
-                .foregroundStyle(Color.white.opacity(0.58))
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 4)
-    }
-
     // MARK: Input Card
 
     private var inputCard: some View {
-        VStack(spacing: 0) {
-            // Word
-            cardRow {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(L["input.wordLabel"])
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(Color.appCardSub)
-                    TextField(L["input.wordPlaceholder"], text: $viewModel.word)
-                        .font(.body)
-                        .foregroundStyle(Color.appCardText)
-                }
+        VStack(alignment: .leading, spacing: 20) {
+            // Section header
+            Text("Today's Challenge")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(Color.cardSub)
+
+            // Word field
+            VStack(alignment: .leading, spacing: 6) {
+                Text(L["input.wordLabel"])
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.cardSub)
+                TextField(L["input.wordPlaceholder"], text: $viewModel.word)
+                    .font(.system(size: 16))
+                    .foregroundStyle(Color.cardText)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Color(white: 0.96))
+                    )
             }
 
-            cardDivider
-
-            // Length
-            cardRow {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(L["input.sentenceLengthLabel"])
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(Color.appCardSub)
-                    Picker("", selection: $viewModel.sentenceLength) {
-                        ForEach(SentenceLength.allCases) { l in
-                            Text(L[l.rawValue]).tag(l)
-                        }
-                    }
-                    .pickerStyle(.segmented)
+            // Level picker
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text(L["input.levelLabel"])
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Color.cardSub)
+                    Spacer()
+                    Text(L[viewModel.level.descriptionKey])
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.cardSub)
                 }
+                Picker("", selection: $viewModel.level) {
+                    ForEach(EnglishLevel.allCases) { l in
+                        Text(L[l.rawValue]).tag(l)
+                    }
+                }
+                .pickerStyle(.segmented)
             }
 
-            cardDivider
-
-            // Level
-            cardRow {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text(L["input.levelLabel"])
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(Color.appCardSub)
-                        Spacer()
-                        Text(L[viewModel.level.descriptionKey])
-                            .font(.caption2)
-                            .foregroundStyle(Color.appCardSub)
+            // Length picker
+            VStack(alignment: .leading, spacing: 6) {
+                Text(L["input.sentenceLengthLabel"])
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.cardSub)
+                Picker("", selection: $viewModel.sentenceLength) {
+                    ForEach(SentenceLength.allCases) { l in
+                        Text(L[l.rawValue]).tag(l)
                     }
-                    Picker("", selection: $viewModel.level) {
-                        ForEach(EnglishLevel.allCases) { l in
-                            Text(L[l.rawValue]).tag(l)
-                        }
-                    }
-                    .pickerStyle(.segmented)
                 }
+                .pickerStyle(.segmented)
             }
-        }
-        .background(Color.white)
-        .cornerRadius(20)
-        .shadow(color: .black.opacity(0.18), radius: 14, y: 5)
-        .padding(.horizontal, 16)
-        .overlay(alignment: .bottom) {
+
+            // Generate button
             generateButton
-                .padding(.horizontal, 16)
-                .offset(y: 60)
         }
-        .padding(.bottom, 72)
-    }
-
-    private func cardRow<C: View>(@ViewBuilder content: () -> C) -> some View {
-        content()
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
-    }
-
-    private var cardDivider: some View {
-        Rectangle()
-            .fill(Color.appCardSub.opacity(0.15))
-            .frame(height: 0.5)
-            .padding(.horizontal, 16)
+        .padding(22)
+        .background(
+            RoundedRectangle(cornerRadius: 22)
+                .fill(Color.white.opacity(0.82))
+                .shadow(color: Color(red: 0.30, green: 0.50, blue: 0.75).opacity(0.20), radius: 20, x: 0, y: 8)
+                .shadow(color: .black.opacity(0.04), radius: 4, x: 0, y: 2)
+        )
     }
 
     private var generateButton: some View {
         Button(action: { viewModel.generate(modelContext: modelContext) }) {
             HStack(spacing: 8) {
                 if viewModel.isGenerating {
-                    ProgressView()
-                        .controlSize(.small)
-                        .tint(.white)
+                    ProgressView().controlSize(.small).tint(.white)
                 }
-                Image(systemName: viewModel.isGenerating ? "" : "wand.and.sparkles")
-                    .font(.system(size: 15, weight: .semibold))
                 Text(viewModel.isGenerating ? L["button.generating"] : L["button.generate"])
                     .font(.system(size: 16, weight: .bold))
             }
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
-            .frame(height: 54)
+            .frame(height: 52)
             .background(
-                LinearGradient(
-                    colors: [Color.appBlue, Color.appBlueDark],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [.btnBlue, .btnBlueDark],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .shadow(color: Color.btnBlue.opacity(0.45), radius: 12, x: 0, y: 5)
             )
-            .cornerRadius(16)
-            .shadow(color: Color.appBlue.opacity(0.45), radius: 10, y: 4)
         }
         .buttonStyle(.plain)
         .disabled(viewModel.word.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isGenerating)
         .opacity(viewModel.word.trimmingCharacters(in: .whitespaces).isEmpty ? 0.55 : 1.0)
     }
 
-    // MARK: Error Card
+    // MARK: Error Banner
 
-    private var errorCard: some View {
+    private var errorBanner: some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "exclamationmark.circle.fill")
-                .foregroundStyle(.red)
+                .foregroundStyle(Color(red: 0.85, green: 0.25, blue: 0.25))
             Text(viewModel.errorMessage)
                 .font(.subheadline)
-                .foregroundStyle(Color(red: 0.8, green: 0.1, blue: 0.1))
+                .foregroundStyle(Color(red: 0.75, green: 0.15, blue: 0.15))
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
-        .cornerRadius(16)
-        .padding(.horizontal, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.white.opacity(0.82))
+                .shadow(color: .black.opacity(0.06), radius: 8, y: 3)
+        )
     }
 
     // MARK: Output Card
 
     private var outputCard: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // English result
             VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 6) {
-                    Image(systemName: "globe")
-                        .font(.caption)
-                        .foregroundStyle(Color.appBlue)
-                    Text(L["output.englishLabel"])
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundStyle(Color.appBlue)
-                }
+                Label(L["output.englishLabel"], systemImage: "globe")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Color.btnBlue)
                 Text(viewModel.englishResult)
-                    .font(.body)
-                    .fontWeight(.medium)
-                    .foregroundStyle(Color.appCardText)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(Color.cardText)
                     .textSelection(.enabled)
             }
             .padding(20)
 
-            if viewModel.isTranslationVisible {
-                Rectangle()
-                    .fill(Color.appCardSub.opacity(0.15))
-                    .frame(height: 0.5)
-                    .padding(.horizontal, 16)
+            Divider().padding(.horizontal, 16)
 
+            if viewModel.isTranslationVisible {
                 VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "character.bubble")
-                            .font(.caption)
-                            .foregroundStyle(Color.orange)
-                        Text(L["output.japaneseLabel"])
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundStyle(Color.orange)
-                    }
+                    Label(L["output.japaneseLabel"], systemImage: "character.bubble")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Color(red: 0.80, green: 0.46, blue: 0.12))
                     Text(viewModel.translationResult)
-                        .font(.body)
-                        .foregroundStyle(Color.appCardText)
+                        .font(.system(size: 15))
+                        .foregroundStyle(Color.cardText)
                         .textSelection(.enabled)
                 }
                 .padding(20)
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
             } else {
                 Button(action: {
-                    withAnimation(.spring(duration: 0.35)) {
-                        viewModel.isTranslationVisible = true
-                    }
+                    withAnimation(.spring(duration: 0.3)) { viewModel.isTranslationVisible = true }
                 }) {
                     HStack(spacing: 6) {
-                        Image(systemName: "eye")
-                            .font(.system(size: 14))
-                        Text(L["button.showJapanese"])
-                            .font(.subheadline)
-                            .fontWeight(.medium)
+                        Image(systemName: "eye").font(.system(size: 13))
+                        Text(L["button.showJapanese"]).font(.subheadline).fontWeight(.medium)
                     }
-                    .foregroundStyle(Color.appBlue)
+                    .foregroundStyle(Color.btnBlue)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(Color.appBlue.opacity(0.08))
+                    .background(Color.btnBlue.opacity(0.07))
                 }
                 .buttonStyle(.plain)
                 .transition(.opacity)
             }
         }
-        .background(Color.white)
-        .cornerRadius(20)
-        .shadow(color: .black.opacity(0.18), radius: 14, y: 5)
-        .padding(.horizontal, 16)
-        .animation(.spring(duration: 0.35), value: viewModel.isTranslationVisible)
+        .background(
+            RoundedRectangle(cornerRadius: 22)
+                .fill(Color.white.opacity(0.82))
+                .shadow(color: Color(red: 0.30, green: 0.50, blue: 0.75).opacity(0.18), radius: 18, x: 0, y: 6)
+                .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
+        )
+        .animation(.spring(duration: 0.3), value: viewModel.isTranslationVisible)
     }
 
     // MARK: Action Buttons
 
     private var actionButtons: some View {
-        VStack(spacing: 12) {
-            // Next / regenerate
+        VStack(spacing: 10) {
             Button(action: {
                 viewModel.reset()
                 viewModel.generate(modelContext: modelContext)
             }) {
                 HStack(spacing: 8) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 15, weight: .semibold))
-                    Text("新しい英文を生成")
-                        .font(.system(size: 16, weight: .bold))
+                    Image(systemName: "arrow.clockwise").font(.system(size: 14, weight: .semibold))
+                    Text("新しい英文を生成").font(.system(size: 16, weight: .bold))
                 }
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
-                .frame(height: 54)
+                .frame(height: 52)
                 .background(
-                    LinearGradient(
-                        colors: [Color.appBlue, Color.appBlueDark],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+                    Capsule()
+                        .fill(LinearGradient(colors: [.btnBlue, .btnBlueDark], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .shadow(color: Color.btnBlue.opacity(0.40), radius: 12, y: 5)
                 )
-                .cornerRadius(16)
-                .shadow(color: Color.appBlue.opacity(0.40), radius: 10, y: 4)
             }
             .buttonStyle(.plain)
 
-            // Done / save
             Button(action: {
                 viewModel.reset()
                 withAnimation(.spring(duration: 0.45)) { isInputVisible = true }
             }) {
                 HStack(spacing: 8) {
-                    Image(systemName: "checkmark.circle")
-                        .font(.system(size: 15, weight: .semibold))
-                    Text("完了・覚えた")
-                        .font(.system(size: 16, weight: .semibold))
+                    Image(systemName: "checkmark.circle").font(.system(size: 14, weight: .semibold))
+                    Text("完了・覚えた").font(.system(size: 15, weight: .semibold))
                 }
-                .foregroundStyle(Color.white.opacity(0.85))
+                .foregroundStyle(Color.btnBlue)
                 .frame(maxWidth: .infinity)
-                .frame(height: 52)
-                .background(Color.white.opacity(0.14))
-                .cornerRadius(16)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.white.opacity(0.28), lineWidth: 1)
+                .frame(height: 50)
+                .background(
+                    Capsule()
+                        .fill(Color.white.opacity(0.75))
+                        .shadow(color: Color.btnBlue.opacity(0.15), radius: 10, y: 4)
                 )
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 16)
     }
 }
 
@@ -1006,16 +725,8 @@ struct FormSection<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(title)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Color.appCardSub)
-                if let badge {
-                    Spacer()
-                    Text(badge)
-                        .font(.caption2)
-                        .foregroundStyle(Color.appCardSub)
-                }
+                Text(title).font(.caption).fontWeight(.semibold).foregroundStyle(Color.cardSub)
+                if let badge { Spacer(); Text(badge).font(.caption2).foregroundStyle(Color.cardSub) }
             }
             content()
         }
@@ -1030,14 +741,8 @@ struct ResultCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label(label, systemImage: systemImage)
-                .font(.caption)
-                .fontWeight(.bold)
-                .foregroundStyle(color)
-            Text(text)
-                .font(.body)
-                .textSelection(.enabled)
-                .foregroundStyle(Color.appCardText)
+            Label(label, systemImage: systemImage).font(.caption).fontWeight(.bold).foregroundStyle(color)
+            Text(text).font(.body).textSelection(.enabled).foregroundStyle(Color.cardText)
         }
     }
 }
