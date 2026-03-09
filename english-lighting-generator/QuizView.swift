@@ -201,52 +201,50 @@ private struct QuizContentView: View {
     @Environment(\.modelContext) private var modelContext
 
     @State private var viewModel = QuizViewModel()
-    @State private var isInputVisible = true
 
     var body: some View {
         ZStack {
-            if viewModel.isGenerating && !isInputVisible {
+            if viewModel.isGenerating {
+                // ── Loading ──────────────────────────────────────────────
                 GlowLoadingBar(subtitle: L["button.generating"] + "...")
                     .transition(.opacity)
-            } else {
+
+            } else if viewModel.quiz != nil {
+                // ── Quiz active ───────────────────────────────────────────
                 ScrollView {
                     VStack(spacing: 20) {
                         if !viewModel.errorMessage.isEmpty { errorBanner }
-
-                        if isInputVisible {
-                            settingsCard
-                                .transition(.move(edge: .top).combined(with: .opacity))
-                        }
-
-                        if viewModel.quiz != nil {
-                            WordOrderCard(viewModel: viewModel, modelContext: modelContext)
-                                .transition(.asymmetric(
-                                    insertion: .opacity.combined(with: .move(edge: .bottom)),
-                                    removal: .opacity
-                                ))
-
-                            if viewModel.isChecked {
-                                nextButtons.transition(.opacity)
-                            }
-                        } else if !viewModel.isGenerating && isInputVisible {
-                            promptPlaceholder
-                        }
+                        WordOrderCard(viewModel: viewModel, modelContext: modelContext)
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .move(edge: .bottom)),
+                                removal: .opacity
+                            ))
+                        if viewModel.isChecked { nextButtons.transition(.opacity) }
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 20)
-                    .animation(.spring(duration: 0.45), value: isInputVisible)
-                    .animation(.spring(duration: 0.45), value: viewModel.quiz?.correctSentence)
                     .animation(.spring(duration: 0.3), value: viewModel.isChecked)
-                    .animation(.easeInOut(duration: 0.25), value: viewModel.errorMessage)
                 }
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+
+            } else {
+                // ── Input (vertically centred) ────────────────────────────
+                VStack(spacing: 14) {
+                    if !viewModel.errorMessage.isEmpty {
+                        errorBanner.padding(.horizontal, 16)
+                    }
+                    Spacer(minLength: 0)
+                    settingsCard.padding(.horizontal, 16)
+                    Spacer(minLength: 0)
+                }
+                .padding(.vertical, 20)
+                .transition(.opacity)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onChange(of: viewModel.quiz?.correctSentence) { _, sentence in
-            if sentence != nil {
-                withAnimation(.spring(duration: 0.45)) { isInputVisible = false }
-            }
-        }
+        .animation(.easeInOut(duration: 0.30), value: viewModel.isGenerating)
+        .animation(.spring(duration: 0.45), value: viewModel.quiz?.correctSentence)
+        .animation(.easeInOut(duration: 0.25), value: viewModel.errorMessage)
     }
 
     // MARK: Settings Card
@@ -285,6 +283,7 @@ private struct QuizContentView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                .tint(Color.btnBlue)
             }
 
             generateButton
@@ -298,16 +297,13 @@ private struct QuizContentView: View {
         )
     }
 
+    private var isWordEmpty: Bool { viewModel.word.trimmingCharacters(in: .whitespaces).isEmpty }
+
     private var generateButton: some View {
         Button(action: { viewModel.generate() }) {
             HStack(spacing: 8) {
-                if viewModel.isGenerating {
-                    ProgressView().controlSize(.small).tint(.white)
-                } else {
-                    Image(systemName: "dice.fill").font(.system(size: 14, weight: .semibold))
-                }
-                Text(viewModel.isGenerating ? L["button.generating"] : L["quiz.generateButton"])
-                    .font(.system(size: 16, weight: .bold))
+                Image(systemName: "dice.fill").font(.system(size: 14, weight: .semibold))
+                Text(L["quiz.generateButton"]).font(.system(size: 16, weight: .bold))
             }
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
@@ -319,8 +315,8 @@ private struct QuizContentView: View {
             )
         }
         .buttonStyle(.plain)
-        .disabled(viewModel.isGenerating)
-        .opacity(viewModel.isGenerating ? 0.6 : 1.0)
+        .disabled(isWordEmpty)
+        .opacity(isWordEmpty ? 0.45 : 1.0)
     }
 
     // MARK: Error Banner
@@ -335,26 +331,6 @@ private struct QuizContentView: View {
         .background(RoundedRectangle(cornerRadius: 16).fill(Color.white.opacity(0.82)).shadow(color: .black.opacity(0.06), radius: 8, y: 3))
     }
 
-    // MARK: Prompt Placeholder
-
-    private var promptPlaceholder: some View {
-        VStack(spacing: 16) {
-            ZStack {
-                Circle().fill(Color.white.opacity(0.55)).frame(width: 72, height: 72)
-                Image(systemName: "text.word.spacing")
-                    .font(.system(size: 30))
-                    .foregroundStyle(Color.btnBlue.opacity(0.70))
-            }
-            VStack(spacing: 6) {
-                Text(L["quiz.prompt"]).font(.headline).fontWeight(.bold).foregroundStyle(Color.cardText)
-                Text(L["quiz.promptDetail"]).font(.subheadline).foregroundStyle(Color.cardSub)
-                    .multilineTextAlignment(.center).padding(.horizontal, 28)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 16)
-    }
-
     // MARK: Next / Reset Buttons
 
     private var nextButtons: some View {
@@ -362,7 +338,7 @@ private struct QuizContentView: View {
             Button(action: { viewModel.reset(); viewModel.generate() }) {
                 HStack(spacing: 8) {
                     Image(systemName: "arrow.clockwise").font(.system(size: 14, weight: .semibold))
-                    Text("次の問題").font(.system(size: 16, weight: .bold))
+                    Text("問題を再生成").font(.system(size: 16, weight: .bold))
                 }
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity).frame(height: 52)
@@ -374,10 +350,10 @@ private struct QuizContentView: View {
             }
             .buttonStyle(.plain)
 
-            Button(action: { viewModel.reset(); withAnimation(.spring(duration: 0.45)) { isInputVisible = true } }) {
+            Button(action: { viewModel.reset() }) {
                 HStack(spacing: 8) {
-                    Image(systemName: "slider.horizontal.3").font(.system(size: 14, weight: .semibold))
-                    Text("設定に戻る").font(.system(size: 15, weight: .semibold))
+                    Image(systemName: "checkmark.circle").font(.system(size: 14, weight: .semibold))
+                    Text("完了").font(.system(size: 15, weight: .semibold))
                 }
                 .foregroundStyle(Color.btnBlue)
                 .frame(maxWidth: .infinity).frame(height: 50)

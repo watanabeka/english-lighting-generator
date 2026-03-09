@@ -448,52 +448,50 @@ struct GeneratorView: View {
     @Environment(LocalizationManager.self) private var L
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel = AppViewModel()
-    @State private var isInputVisible = true
     @Binding var prefillWord: String
 
     var body: some View {
         ZStack {
-            if viewModel.isGenerating && !isInputVisible {
+            if viewModel.isGenerating {
+                // ── Loading ──────────────────────────────────────────────
                 GlowLoadingBar(subtitle: L["button.generating"] + "...")
                     .transition(.opacity)
-            } else {
+
+            } else if !viewModel.englishResult.isEmpty {
+                // ── Result ───────────────────────────────────────────────
                 ScrollView {
                     VStack(spacing: 20) {
-                        if isInputVisible {
-                            inputCard
-                                .transition(.move(edge: .top).combined(with: .opacity))
-                        }
-
-                        if !viewModel.errorMessage.isEmpty {
-                            errorBanner
-                        }
-
-                        if !viewModel.englishResult.isEmpty {
-                            outputCard
-                                .transition(.opacity.combined(with: .move(edge: .bottom)))
-                            actionButtons
-                                .transition(.opacity)
-                        }
+                        if !viewModel.errorMessage.isEmpty { errorBanner }
+                        outputCard
+                        actionButtons
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 20)
-                    .animation(.spring(duration: 0.45), value: isInputVisible)
-                    .animation(.spring(duration: 0.45), value: viewModel.englishResult.isEmpty)
-                    .animation(.easeInOut(duration: 0.25), value: viewModel.errorMessage)
                 }
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+
+            } else {
+                // ── Input (vertically centred) ────────────────────────────
+                VStack(spacing: 14) {
+                    if !viewModel.errorMessage.isEmpty {
+                        errorBanner.padding(.horizontal, 16)
+                    }
+                    Spacer(minLength: 0)
+                    inputCard.padding(.horizontal, 16)
+                    Spacer(minLength: 0)
+                }
+                .padding(.vertical, 20)
+                .transition(.opacity)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onChange(of: viewModel.englishResult) { _, result in
-            if !result.isEmpty {
-                withAnimation(.spring(duration: 0.45)) { isInputVisible = false }
-            }
-        }
+        .animation(.easeInOut(duration: 0.30), value: viewModel.isGenerating)
+        .animation(.spring(duration: 0.45), value: viewModel.englishResult.isEmpty)
+        .animation(.easeInOut(duration: 0.25), value: viewModel.errorMessage)
         .onChange(of: prefillWord) { _, newWord in
             guard !newWord.isEmpty else { return }
             viewModel.word = newWord
             viewModel.reset()
-            withAnimation(.spring(duration: 0.45)) { isInputVisible = true }
             prefillWord = ""
         }
     }
@@ -540,6 +538,7 @@ struct GeneratorView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                .tint(Color.btnBlue)
             }
 
             // Length picker
@@ -553,6 +552,7 @@ struct GeneratorView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                .tint(Color.btnBlue)
             }
 
             // Generate button
@@ -680,7 +680,7 @@ struct GeneratorView: View {
             }) {
                 HStack(spacing: 8) {
                     Image(systemName: "arrow.clockwise").font(.system(size: 14, weight: .semibold))
-                    Text("新しい英文を生成").font(.system(size: 16, weight: .bold))
+                    Text("英文を再生成").font(.system(size: 16, weight: .bold))
                 }
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
@@ -693,13 +693,10 @@ struct GeneratorView: View {
             }
             .buttonStyle(.plain)
 
-            Button(action: {
-                viewModel.reset()
-                withAnimation(.spring(duration: 0.45)) { isInputVisible = true }
-            }) {
+            Button(action: { viewModel.reset() }) {
                 HStack(spacing: 8) {
                     Image(systemName: "checkmark.circle").font(.system(size: 14, weight: .semibold))
-                    Text("完了・覚えた").font(.system(size: 15, weight: .semibold))
+                    Text("完了").font(.system(size: 15, weight: .semibold))
                 }
                 .foregroundStyle(Color.btnBlue)
                 .frame(maxWidth: .infinity)
