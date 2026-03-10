@@ -201,6 +201,24 @@ private struct QuizContentView: View {
     @Environment(\.modelContext) private var modelContext
 
     @State private var viewModel = QuizViewModel()
+    @State private var showSubscriptionDialog = false
+    @State private var showReviewPrompt = false
+    @AppStorage("quizGenerationCount") private var quizGenerationCount: Int = 0
+    @AppStorage("hasRespondedToReview") private var hasRespondedToReview: Bool = false
+
+    private var store: StoreManager { StoreManager.shared }
+
+    private func generateWithLimitCheck() {
+        if !store.isPremium && todayTotalUsage(modelContext: modelContext) >= dailyFreeLimit {
+            showSubscriptionDialog = true
+            return
+        }
+        quizGenerationCount += 1
+        if quizGenerationCount == 3 && !hasRespondedToReview {
+            showReviewPrompt = true
+        }
+        viewModel.generate()
+    }
 
     var body: some View {
         ZStack {
@@ -259,6 +277,25 @@ private struct QuizContentView: View {
         .animation(.easeInOut(duration: 0.30), value: viewModel.isGenerating)
         .animation(.spring(duration: 0.45), value: viewModel.quiz?.correctSentence)
         .animation(.easeInOut(duration: 0.25), value: viewModel.errorMessage)
+        .overlay {
+            if showSubscriptionDialog {
+                SubscriptionDialog(isPresented: $showSubscriptionDialog)
+                    .environment(L)
+                    .transition(.opacity.combined(with: .scale(scale: 0.94)))
+            }
+        }
+        .overlay {
+            if showReviewPrompt {
+                ReviewPromptDialog(isPresented: $showReviewPrompt)
+                    .environment(L)
+                    .transition(.opacity.combined(with: .scale(scale: 0.94)))
+            }
+        }
+        .animation(.spring(duration: 0.35), value: showSubscriptionDialog)
+        .animation(.spring(duration: 0.35), value: showReviewPrompt)
+        .onChange(of: store.isPremium) { _, isPremium in
+            if isPremium { showSubscriptionDialog = false }
+        }
     }
 
     // MARK: Settings Card
@@ -312,7 +349,7 @@ private struct QuizContentView: View {
     private var isWordEmpty: Bool { viewModel.word.trimmingCharacters(in: .whitespaces).isEmpty }
 
     private var generateButton: some View {
-        Button(action: { viewModel.generate() }) {
+        Button(action: { generateWithLimitCheck() }) {
             HStack(spacing: 8) {
                 Image(systemName: "dice.fill").font(.system(size: 14, weight: .semibold))
                 Text(L["quiz.generateButton"]).font(.system(size: 16, weight: .bold))
@@ -358,7 +395,7 @@ private struct QuizContentView: View {
             }
             .buttonStyle(.plain)
 
-            Button(action: { viewModel.reset(); viewModel.generate() }) {
+            Button(action: { viewModel.reset(); generateWithLimitCheck() }) {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.clockwise").font(.system(size: 13, weight: .semibold))
                     Text(L["button.regenerateQuiz"]).font(.system(size: 15, weight: .bold))

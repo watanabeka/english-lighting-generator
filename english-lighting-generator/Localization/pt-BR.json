@@ -71,5 +71,17 @@
   "disclaimer.body": "Este aplicativo usa o Apple Intelligence para gerar frases em inglês automaticamente.\n\nEmbora o objetivo seja ajudá-lo a aprender inglês por meio de vários tópicos, os textos gerados podem soar pouco naturais às vezes.\nDisponibilizamos recursos no aplicativo para verificar a precisão — use-o com esse entendimento.",
   "disclaimer.close": "Fechar",
   "settings.disclaimer": "Aviso de Uso",
-  "history.delete": "Excluir"
+  "history.delete": "Excluir",
+  "subscription.title": "Plano Premium",
+  "subscription.body": "Você atingiu o limite de gerações gratuitas de hoje (10).\nAssine o Premium para gerar frases e quizzes sem limite.",
+  "subscription.subscribe": "Assinar Premium",
+  "subscription.close": "Agora não",
+  "subscription.period": "mês",
+  "settings.subscribe": "Assinar Premium",
+  "settings.restore": "Restaurar compra",
+  "settings.premiumActive": "Premium ativo",
+  "review.title": "Gostando do app?",
+  "review.body": "Se estiver gostando, adoraríamos receber sua avaliação na App Store.",
+  "review.writeReview": "Avaliar",
+  "review.notNow": "Agora não"
 }

@@ -509,7 +509,18 @@ struct GeneratorView: View {
     @Environment(LocalizationManager.self) private var L
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel = AppViewModel()
+    @State private var showSubscriptionDialog = false
     @Binding var prefillWord: String
+
+    private var store: StoreManager { StoreManager.shared }
+
+    private func generateWithLimitCheck() {
+        if !store.isPremium && todayTotalUsage(modelContext: modelContext) >= dailyFreeLimit {
+            showSubscriptionDialog = true
+            return
+        }
+        viewModel.generate(modelContext: modelContext)
+    }
 
     var body: some View {
         ZStack {
@@ -560,6 +571,17 @@ struct GeneratorView: View {
         .animation(.easeInOut(duration: 0.30), value: viewModel.isGenerating)
         .animation(.spring(duration: 0.45), value: viewModel.englishResult.isEmpty)
         .animation(.easeInOut(duration: 0.25), value: viewModel.errorMessage)
+        .overlay {
+            if showSubscriptionDialog {
+                SubscriptionDialog(isPresented: $showSubscriptionDialog)
+                    .environment(L)
+                    .transition(.opacity.combined(with: .scale(scale: 0.94)))
+            }
+        }
+        .animation(.spring(duration: 0.35), value: showSubscriptionDialog)
+        .onChange(of: store.isPremium) { _, isPremium in
+            if isPremium { showSubscriptionDialog = false }
+        }
         .onChange(of: prefillWord) { _, newWord in
             guard !newWord.isEmpty else { return }
             viewModel.word = newWord
@@ -636,7 +658,7 @@ struct GeneratorView: View {
     }
 
     private var generateButton: some View {
-        Button(action: { viewModel.generate(modelContext: modelContext) }) {
+        Button(action: { generateWithLimitCheck() }) {
             Text(L["button.generate"])
                 .font(.system(size: 16, weight: .bold))
                 .foregroundStyle(.white)
@@ -755,7 +777,7 @@ struct GeneratorView: View {
 
             Button(action: {
                 viewModel.reset()
-                viewModel.generate(modelContext: modelContext)
+                generateWithLimitCheck()
             }) {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.clockwise").font(.system(size: 13, weight: .semibold))

@@ -71,5 +71,17 @@
   "disclaimer.body": "Ứng dụng này sử dụng Apple Intelligence để tự động tạo câu tiếng Anh.\n\nMặc dù mục tiêu là giúp bạn học tiếng Anh qua nhiều chủ đề, nhưng các câu được tạo ra đôi khi có thể nghe không tự nhiên.\nChúng tôi đã cung cấp các tài nguyên trong ứng dụng để kiểm tra độ chính xác — hãy sử dụng ứng dụng với sự hiểu biết này.",
   "disclaimer.close": "Đóng",
   "settings.disclaimer": "Lưu ý sử dụng",
-  "history.delete": "Xóa"
+  "history.delete": "Xóa",
+  "subscription.title": "Gói Premium",
+  "subscription.body": "Bạn đã đạt giới hạn tạo miễn phí hôm nay (10 lần).\nĐăng ký Premium để tạo câu và bài tập không giới hạn.",
+  "subscription.subscribe": "Đăng ký Premium",
+  "subscription.close": "Để sau",
+  "subscription.period": "tháng",
+  "settings.subscribe": "Đăng ký Premium",
+  "settings.restore": "Khôi phục mua hàng",
+  "settings.premiumActive": "Premium đang hoạt động",
+  "review.title": "Bạn thích ứng dụng?",
+  "review.body": "Nếu bạn thích ứng dụng, hãy để lại đánh giá trên App Store nhé.",
+  "review.writeReview": "Đánh giá",
+  "review.notNow": "Để sau"
 }

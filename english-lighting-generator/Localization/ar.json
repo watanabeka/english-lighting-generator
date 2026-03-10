@@ -71,5 +71,17 @@
   "disclaimer.body": "يستخدم هذا التطبيق Apple Intelligence لإنشاء جمل إنجليزية تلقائيًا.\n\nيهدف التطبيق إلى مساعدتك على تعلم اللغة الإنجليزية من خلال موضوعات متنوعة، لكن النصوص المُنشأة قد تبدو أحيانًا غير طبيعية.\nوفّرنا في التطبيق وسائل للتحقق من الدقة — يُرجى استخدام التطبيق مع مراعاة ذلك.",
   "disclaimer.close": "إغلاق",
   "settings.disclaimer": "تنبيه استخدام التطبيق",
-  "history.delete": "حذف"
+  "history.delete": "حذف",
+  "subscription.title": "الخطة المميزة",
+  "subscription.body": "لقد وصلت إلى حد الإنشاء المجاني لهذا اليوم (10 مرات).\nاشترك في Premium لإنشاء جمل واختبارات بلا حدود.",
+  "subscription.subscribe": "اشترك في Premium",
+  "subscription.close": "ليس الآن",
+  "subscription.period": "شهر",
+  "settings.subscribe": "اشترك في Premium",
+  "settings.restore": "استعادة المشتريات",
+  "settings.premiumActive": "Premium مُفعّل",
+  "review.title": "هل يعجبك التطبيق؟",
+  "review.body": "إذا أعجبك التطبيق، نرجو أن تترك تقييمًا على App Store.",
+  "review.writeReview": "كتابة تقييم",
+  "review.notNow": "ليس الآن"
 }

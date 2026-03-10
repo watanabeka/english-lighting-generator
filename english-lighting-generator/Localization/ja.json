@@ -71,5 +71,17 @@
   "disclaimer.body": "このアプリはApple Intelligenceを利用して英文を自動生成します。\n\n勉強中の英語で色々な文章を学習することを目的としていますが、生成された英語は不自然な言い回しになる可能性があります。\nアプリ内に正しさを調べる導線も用意していますので、ご理解の上お使いください。",
   "disclaimer.close": "閉じる",
   "settings.disclaimer": "アプリ利用の注意点",
-  "history.delete": "削除"
+  "history.delete": "削除",
+  "subscription.title": "プレミアムプラン",
+  "subscription.body": "本日の無料生成回数（10回）に達しました。\nプレミアムに登録すると、英文生成・問題作成が無制限でご利用いただけます。",
+  "subscription.subscribe": "プレミアムに登録",
+  "subscription.close": "今はしない",
+  "subscription.period": "月額",
+  "settings.subscribe": "プレミアムに登録",
+  "settings.restore": "購入を復元",
+  "settings.premiumActive": "プレミアム利用中",
+  "review.title": "アプリはいかがですか？",
+  "review.body": "もしよければ、App Storeでレビューをお願いします。今後の改善に役立てます。",
+  "review.writeReview": "レビューを書く",
+  "review.notNow": "今はしない"
 }

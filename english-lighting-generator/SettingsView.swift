@@ -10,6 +10,8 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(LocalizationManager.self) private var L
     @Binding var showDisclaimer: Bool
+    @State private var showSubscriptionDialog = false
+    private var store: StoreManager { StoreManager.shared }
 
     private var appVersion: String {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
@@ -29,6 +31,35 @@ struct SettingsView: View {
                         }
                     }
                     .buttonStyle(.plain)
+                }
+
+                // Subscription card
+                settingsCard {
+                    VStack(spacing: 0) {
+                        if store.isPremium {
+                            settingsRow(icon: "crown.fill", iconColor: Color(red: 1.0, green: 0.75, blue: 0.18), title: L["settings.premiumActive"]) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 18))
+                                    .foregroundStyle(Color(red: 0.12, green: 0.68, blue: 0.40))
+                            }
+                        } else {
+                            Button(action: { showSubscriptionDialog = true }) {
+                                settingsRow(icon: "crown.fill", iconColor: Color(red: 1.0, green: 0.75, blue: 0.18), title: L["settings.subscribe"]) {
+                                    Image(systemName: "chevron.right").font(.caption).foregroundStyle(Color.cardSub)
+                                }
+                            }
+                            .buttonStyle(.plain)
+
+                            Divider().padding(.horizontal, 14)
+                        }
+
+                        Button(action: { Task { await store.restore() } }) {
+                            settingsRow(icon: "arrow.clockwise.circle.fill", iconColor: Color.btnBlue, title: L["settings.restore"]) {
+                                Image(systemName: "chevron.right").font(.caption).foregroundStyle(Color.cardSub)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
 
                 // App info card
@@ -81,6 +112,17 @@ struct SettingsView: View {
             .padding(.vertical, 20)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay {
+            if showSubscriptionDialog {
+                SubscriptionDialog(isPresented: $showSubscriptionDialog)
+                    .environment(L)
+                    .transition(.opacity.combined(with: .scale(scale: 0.94)))
+            }
+        }
+        .animation(.spring(duration: 0.35), value: showSubscriptionDialog)
+        .onChange(of: store.isPremium) { _, isPremium in
+            if isPremium { showSubscriptionDialog = false }
+        }
     }
 
     // MARK: Card Container
