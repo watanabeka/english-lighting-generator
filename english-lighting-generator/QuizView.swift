@@ -211,26 +211,28 @@ private struct QuizContentView: View {
 
             } else if viewModel.quiz != nil {
                 // ── Quiz active (vertically centred) ─────────────────────
-                ScrollView {
-                    VStack(spacing: 20) {
-                        if !viewModel.errorMessage.isEmpty {
-                            errorBanner.padding(.horizontal, 16)
+                GeometryReader { geo in
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            if !viewModel.errorMessage.isEmpty {
+                                errorBanner.padding(.horizontal, 16)
+                            }
+                            Spacer(minLength: 0)
+                            WordOrderCard(viewModel: viewModel, modelContext: modelContext)
+                                .padding(.horizontal, 16)
+                                .transition(.asymmetric(
+                                    insertion: .opacity.combined(with: .move(edge: .bottom)),
+                                    removal: .opacity
+                                ))
+                            if viewModel.isChecked {
+                                nextButtons.padding(.horizontal, 16).transition(.opacity)
+                            }
+                            Spacer(minLength: 0)
                         }
-                        Spacer(minLength: 0)
-                        WordOrderCard(viewModel: viewModel, modelContext: modelContext)
-                            .padding(.horizontal, 16)
-                            .transition(.asymmetric(
-                                insertion: .opacity.combined(with: .move(edge: .bottom)),
-                                removal: .opacity
-                            ))
-                        if viewModel.isChecked {
-                            nextButtons.padding(.horizontal, 16).transition(.opacity)
-                        }
-                        Spacer(minLength: 0)
+                        .padding(.vertical, 20)
+                        .frame(maxWidth: .infinity, minHeight: geo.size.height)
+                        .animation(.spring(duration: 0.3), value: viewModel.isChecked)
                     }
-                    .padding(.vertical, 20)
-                    .frame(maxWidth: .infinity, minHeight: UIScreen.main.bounds.height - 120)
-                    .animation(.spring(duration: 0.3), value: viewModel.isChecked)
                 }
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
 
@@ -258,7 +260,7 @@ private struct QuizContentView: View {
 
     private var settingsCard: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("Today's Challenge")
+            Text(L["output.challenge"])
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(Color.cardSub)
 
@@ -340,11 +342,10 @@ private struct QuizContentView: View {
 
     private var nextButtons: some View {
         HStack(spacing: 10) {
-            // 完了
             Button(action: { viewModel.reset() }) {
                 HStack(spacing: 6) {
                     Image(systemName: "checkmark.circle").font(.system(size: 13, weight: .semibold))
-                    Text("完了").font(.system(size: 15, weight: .semibold))
+                    Text(L["button.done"]).font(.system(size: 15, weight: .semibold))
                 }
                 .foregroundStyle(Color.btnBlue)
                 .frame(maxWidth: .infinity).frame(height: 50)
@@ -352,11 +353,10 @@ private struct QuizContentView: View {
             }
             .buttonStyle(.plain)
 
-            // 再生成
             Button(action: { viewModel.reset(); viewModel.generate() }) {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.clockwise").font(.system(size: 13, weight: .semibold))
-                    Text("問題を再生成").font(.system(size: 15, weight: .bold))
+                    Text(L["button.regenerateQuiz"]).font(.system(size: 15, weight: .bold))
                 }
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity).frame(height: 50)

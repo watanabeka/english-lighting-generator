@@ -62,5 +62,14 @@
   "settings.reviewApp": "Beri ulasan",
   "settings.displayLanguage": "Bahasa",
   "analytics.historyLabel": "Riwayat belajar",
-  "quiz.searchButton": "Cari Detail"
+  "quiz.searchButton": "Cari Detail",
+  "button.done": "Selesai",
+  "button.regenerateSentence": "Buat Ulang",
+  "button.regenerateQuiz": "Quiz Baru",
+  "output.challenge": "Today's Challenge",
+  "disclaimer.title": "Pemberitahuan Penggunaan",
+  "disclaimer.body": "Aplikasi ini menggunakan Apple Intelligence untuk membuat kalimat bahasa Inggris secara otomatis.\n\nMeskipun bertujuan membantu Anda belajar bahasa Inggris melalui berbagai topik, kalimat yang dihasilkan mungkin terdengar tidak alami sesekali.\nKami telah menyediakan sumber daya dalam aplikasi untuk memeriksa keakuratan — harap gunakan aplikasi ini dengan memahami hal tersebut.",
+  "disclaimer.close": "Tutup",
+  "settings.disclaimer": "Pemberitahuan Penggunaan",
+  "history.delete": "Hapus"
 }

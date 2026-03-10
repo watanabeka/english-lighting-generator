@@ -9,6 +9,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(LocalizationManager.self) private var L
+    @Binding var showDisclaimer: Bool
 
     private var appVersion: String {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
@@ -19,6 +20,16 @@ struct SettingsView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
+
+                // Disclaimer card
+                settingsCard {
+                    Button(action: { showDisclaimer = true }) {
+                        settingsRow(icon: "shield.lefthalf.filled.slash", iconColor: Color.btnBlue, title: L["settings.disclaimer"]) {
+                            Image(systemName: "chevron.right").font(.caption).foregroundStyle(Color.cardSub)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
 
                 // App info card
                 settingsCard {
@@ -121,6 +132,6 @@ struct SettingsView: View {
 #Preview {
     ZStack {
         AppBackground()
-        SettingsView().environment(LocalizationManager.shared)
+        SettingsView(showDisclaimer: .constant(false)).environment(LocalizationManager.shared)
     }
 }

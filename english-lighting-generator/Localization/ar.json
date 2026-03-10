@@ -62,5 +62,14 @@
   "settings.reviewApp": "قيّم التطبيق",
   "settings.displayLanguage": "اللغة",
   "analytics.historyLabel": "سجل الدراسة",
-  "quiz.searchButton": "ابحث عن التفاصيل"
+  "quiz.searchButton": "ابحث عن التفاصيل",
+  "button.done": "إنهاء",
+  "button.regenerateSentence": "إعادة الإنشاء",
+  "button.regenerateQuiz": "اختبار جديد",
+  "output.challenge": "Today's Challenge",
+  "disclaimer.title": "تنبيه استخدام التطبيق",
+  "disclaimer.body": "يستخدم هذا التطبيق Apple Intelligence لإنشاء جمل إنجليزية تلقائيًا.\n\nيهدف التطبيق إلى مساعدتك على تعلم اللغة الإنجليزية من خلال موضوعات متنوعة، لكن النصوص المُنشأة قد تبدو أحيانًا غير طبيعية.\nوفّرنا في التطبيق وسائل للتحقق من الدقة — يُرجى استخدام التطبيق مع مراعاة ذلك.",
+  "disclaimer.close": "إغلاق",
+  "settings.disclaimer": "تنبيه استخدام التطبيق",
+  "history.delete": "حذف"
 }

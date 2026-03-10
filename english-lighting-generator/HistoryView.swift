@@ -128,7 +128,7 @@ struct AnalyticsView: View {
                             Button(role: .destructive) {
                                 modelContext.delete(item)
                             } label: {
-                                Label("削除", systemImage: "trash")
+                                Label(L["history.delete"], systemImage: "trash")
                             }
                         }
                 }

@@ -198,13 +198,12 @@ extension Color {
     static let skyTop      = Color(red: 0.50, green: 0.67, blue: 0.86)
     static let skyMid      = Color(red: 0.70, green: 0.83, blue: 0.93)
     static let skyBottom   = Color(red: 0.87, green: 0.93, blue: 0.98)
-    static let skyTabBar   = Color(red: 0.52, green: 0.69, blue: 0.86)
 
     // Card & text
     static let cardText    = Color(red: 0.18, green: 0.24, blue: 0.42)
     static let cardSub     = Color(red: 0.48, green: 0.56, blue: 0.72)
 
-    // Button
+    // Button / accent
     static let btnBlue     = Color(red: 0.22, green: 0.40, blue: 0.72)
     static let btnBlueDark = Color(red: 0.15, green: 0.30, blue: 0.60)
 }
@@ -388,7 +387,9 @@ struct CustomTabBar: View {
             }
         }
         .frame(height: 56)
-        .background(Color.skyTabBar)
+        .background(
+            LinearGradient(colors: [.btnBlue, .btnBlueDark], startPoint: .leading, endPoint: .trailing)
+        )
         .overlay(alignment: .top) {
             Rectangle()
                 .fill(Color.white.opacity(0.30))
@@ -403,6 +404,8 @@ struct ContentView: View {
     @State private var L = LocalizationManager.shared
     @State private var selectedTab: Int = 0
     @State private var prefillWord: String = ""
+    @AppStorage("hasSeenDisclaimer") private var hasSeenDisclaimer: Bool = false
+    @State private var showDisclaimer: Bool = false
 
     var body: some View {
         ZStack {
@@ -423,7 +426,7 @@ struct ContentView: View {
                         selectedTab = 0
                     })
                 } else {
-                    SettingsView()
+                    SettingsView(showDisclaimer: $showDisclaimer)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -432,7 +435,23 @@ struct ContentView: View {
             CustomTabBar(selectedTab: $selectedTab)
                 .environment(L)
         }
+        .overlay {
+            if showDisclaimer {
+                DisclaimerDialog(isPresented: $showDisclaimer)
+                    .environment(L)
+                    .transition(.opacity.combined(with: .scale(scale: 0.94)))
+            }
+        }
+        .animation(.spring(duration: 0.35), value: showDisclaimer)
         .environment(L)
+        .onAppear {
+            if !hasSeenDisclaimer {
+                hasSeenDisclaimer = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    showDisclaimer = true
+                }
+            }
+        }
     }
 }
 
@@ -544,7 +563,7 @@ struct GeneratorView: View {
     private var inputCard: some View {
         VStack(alignment: .leading, spacing: 20) {
             // Section header
-            Text("Today's Challenge")
+            Text(L["output.challenge"])
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(Color.cardSub)
 
@@ -608,16 +627,11 @@ struct GeneratorView: View {
 
     private var generateButton: some View {
         Button(action: { viewModel.generate(modelContext: modelContext) }) {
-            HStack(spacing: 8) {
-                if viewModel.isGenerating {
-                    ProgressView().controlSize(.small).tint(.white)
-                }
-                Text(viewModel.isGenerating ? L["button.generating"] : L["button.generate"])
-                    .font(.system(size: 16, weight: .bold))
-            }
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .frame(height: 52)
+            Text(L["button.generate"])
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 52)
             .background(
                 Capsule()
                     .fill(
@@ -631,7 +645,7 @@ struct GeneratorView: View {
             )
         }
         .buttonStyle(.plain)
-        .disabled(viewModel.word.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isGenerating)
+        .disabled(viewModel.word.trimmingCharacters(in: .whitespaces).isEmpty)
         .opacity(viewModel.word.trimmingCharacters(in: .whitespaces).isEmpty ? 0.55 : 1.0)
     }
 
@@ -713,11 +727,10 @@ struct GeneratorView: View {
 
     private var actionButtons: some View {
         HStack(spacing: 10) {
-            // 完了
             Button(action: { viewModel.reset() }) {
                 HStack(spacing: 6) {
                     Image(systemName: "checkmark.circle").font(.system(size: 13, weight: .semibold))
-                    Text("完了").font(.system(size: 15, weight: .semibold))
+                    Text(L["button.done"]).font(.system(size: 15, weight: .semibold))
                 }
                 .foregroundStyle(Color.btnBlue)
                 .frame(maxWidth: .infinity)
@@ -730,14 +743,13 @@ struct GeneratorView: View {
             }
             .buttonStyle(.plain)
 
-            // 再生成
             Button(action: {
                 viewModel.reset()
                 viewModel.generate(modelContext: modelContext)
             }) {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.clockwise").font(.system(size: 13, weight: .semibold))
-                    Text("英文を再生成").font(.system(size: 15, weight: .bold))
+                    Text(L["button.regenerateSentence"]).font(.system(size: 15, weight: .bold))
                 }
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
@@ -753,34 +765,72 @@ struct GeneratorView: View {
     }
 }
 
-// MARK: - Reusable Subviews (legacy support)
+// MARK: - Disclaimer Dialog
 
-struct FormSection<Content: View>: View {
-    let title: String
-    var badge: String? = nil
-    @ViewBuilder let content: () -> Content
+struct DisclaimerDialog: View {
+    @Binding var isPresented: Bool
+    @Environment(LocalizationManager.self) private var L
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(title).font(.caption).fontWeight(.semibold).foregroundStyle(Color.cardSub)
-                if let badge { Spacer(); Text(badge).font(.caption2).foregroundStyle(Color.cardSub) }
+        ZStack {
+            Color.black.opacity(0.45)
+                .ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                // Icon + Title
+                VStack(spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .fill(LinearGradient(colors: [.btnBlue.opacity(0.15), .btnBlueDark.opacity(0.08)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .frame(width: 68, height: 68)
+                        Image(systemName: "shield.lefthalf.filled.slash")
+                            .font(.system(size: 30, weight: .semibold))
+                            .foregroundStyle(LinearGradient(colors: [.btnBlue, .btnBlueDark], startPoint: .top, endPoint: .bottom))
+                    }
+                    Text(L["disclaimer.title"])
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(Color.cardText)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.top, 30)
+                .padding(.bottom, 18)
+
+                Divider().padding(.horizontal, 24)
+
+                // Body
+                Text(L["disclaimer.body"])
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color.cardText.opacity(0.82))
+                    .lineSpacing(5)
+                    .multilineTextAlignment(.leading)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 20)
+
+                // Close button
+                Button(action: {
+                    withAnimation(.easeOut(duration: 0.2)) { isPresented = false }
+                }) {
+                    Text(L["disclaimer.close"])
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(
+                            Capsule()
+                                .fill(LinearGradient(colors: [.btnBlue, .btnBlueDark], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                .shadow(color: Color.btnBlue.opacity(0.35), radius: 10, y: 4)
+                        )
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 28)
             }
-            content()
-        }
-    }
-}
-
-struct ResultCard: View {
-    let label: String
-    let systemImage: String
-    let color: Color
-    let text: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label(label, systemImage: systemImage).font(.caption).fontWeight(.bold).foregroundStyle(color)
-            Text(text).font(.body).textSelection(.enabled).foregroundStyle(Color.cardText)
+            .background(
+                RoundedRectangle(cornerRadius: 28)
+                    .fill(Color.white.opacity(0.97))
+                    .shadow(color: Color(red: 0.20, green: 0.35, blue: 0.65).opacity(0.28), radius: 32, y: 12)
+            )
+            .padding(.horizontal, 28)
         }
     }
 }
