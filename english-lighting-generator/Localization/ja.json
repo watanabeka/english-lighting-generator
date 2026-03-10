@@ -62,5 +62,14 @@
   "settings.review": "レビュー",
   "settings.reviewApp": "レビューを書く",
   "settings.displayLanguage": "表示言語",
-  "analytics.historyLabel": "勉強履歴"
+  "analytics.historyLabel": "勉強履歴",
+  "button.done": "完了",
+  "button.regenerateSentence": "英文を再生成",
+  "button.regenerateQuiz": "問題を再生成",
+  "output.challenge": "Today's Challenge",
+  "disclaimer.title": "アプリ利用の注意点",
+  "disclaimer.body": "このアプリはApple Intelligenceを利用して英文を自動生成します。\n\n勉強中の英語で色々な文章を学習することを目的としていますが、生成された英語は不自然な言い回しになる可能性があります。\nアプリ内に正しさを調べる導線も用意していますので、ご理解の上お使いください。",
+  "disclaimer.close": "閉じる",
+  "settings.disclaimer": "アプリ利用の注意点",
+  "history.delete": "削除"
 }

@@ -62,5 +62,14 @@
   "settings.reviewApp": "Calificar app",
   "settings.displayLanguage": "Idioma",
   "analytics.historyLabel": "Historial de estudio",
-  "quiz.searchButton": "Buscar Detalles"
+  "quiz.searchButton": "Buscar Detalles",
+  "button.done": "Finalizar",
+  "button.regenerateSentence": "Regenerar",
+  "button.regenerateQuiz": "Nuevo Quiz",
+  "output.challenge": "Today's Challenge",
+  "disclaimer.title": "Aviso de uso",
+  "disclaimer.body": "Esta aplicación utiliza Apple Intelligence para generar frases en inglés de forma automática.\n\nSi bien el objetivo es ayudarte a aprender inglés a través de distintos temas, las frases generadas pueden sonar poco naturales en ocasiones.\nHemos incluido recursos en la app para verificar la precisión — úsala teniendo esto en cuenta.",
+  "disclaimer.close": "Cerrar",
+  "settings.disclaimer": "Aviso de uso",
+  "history.delete": "Eliminar"
 }

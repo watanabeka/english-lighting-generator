@@ -62,5 +62,14 @@
   "settings.reviewApp": "Đánh giá app",
   "settings.displayLanguage": "Ngôn ngữ",
   "analytics.historyLabel": "Lịch sử học tập",
-  "quiz.searchButton": "Tìm Chi Tiết"
+  "quiz.searchButton": "Tìm Chi Tiết",
+  "button.done": "Hoàn tất",
+  "button.regenerateSentence": "Tạo lại",
+  "button.regenerateQuiz": "Câu hỏi mới",
+  "output.challenge": "Today's Challenge",
+  "disclaimer.title": "Lưu ý sử dụng",
+  "disclaimer.body": "Ứng dụng này sử dụng Apple Intelligence để tự động tạo câu tiếng Anh.\n\nMặc dù mục tiêu là giúp bạn học tiếng Anh qua nhiều chủ đề, nhưng các câu được tạo ra đôi khi có thể nghe không tự nhiên.\nChúng tôi đã cung cấp các tài nguyên trong ứng dụng để kiểm tra độ chính xác — hãy sử dụng ứng dụng với sự hiểu biết này.",
+  "disclaimer.close": "Đóng",
+  "settings.disclaimer": "Lưu ý sử dụng",
+  "history.delete": "Xóa"
 }
