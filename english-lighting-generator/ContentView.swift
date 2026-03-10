@@ -519,30 +519,40 @@ struct GeneratorView: View {
                     .transition(.opacity)
 
             } else if !viewModel.englishResult.isEmpty {
-                // ── Result (vertically centred) ──────────────────────────
-                VStack(spacing: 20) {
-                    if !viewModel.errorMessage.isEmpty {
-                        errorBanner.padding(.horizontal, 16)
+                // ── Result (vertically centred, scrollable) ──────────────
+                GeometryReader { geo in
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            if !viewModel.errorMessage.isEmpty {
+                                errorBanner.padding(.horizontal, 16)
+                            }
+                            Spacer(minLength: 0)
+                            outputCard.padding(.horizontal, 16)
+                            actionButtons.padding(.horizontal, 16)
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.vertical, 20)
+                        .frame(maxWidth: .infinity, minHeight: geo.size.height)
                     }
-                    Spacer(minLength: 0)
-                    outputCard.padding(.horizontal, 16)
-                    actionButtons.padding(.horizontal, 16)
-                    Spacer(minLength: 0)
                 }
-                .padding(.vertical, 20)
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
 
             } else {
-                // ── Input (vertically centred) ────────────────────────────
-                VStack(spacing: 14) {
-                    if !viewModel.errorMessage.isEmpty {
-                        errorBanner.padding(.horizontal, 16)
+                // ── Input (vertically centred, scrollable) ────────────────
+                GeometryReader { geo in
+                    ScrollView {
+                        VStack(spacing: 14) {
+                            if !viewModel.errorMessage.isEmpty {
+                                errorBanner.padding(.horizontal, 16)
+                            }
+                            Spacer(minLength: 0)
+                            inputCard.padding(.horizontal, 16)
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.vertical, 20)
+                        .frame(maxWidth: .infinity, minHeight: geo.size.height)
                     }
-                    Spacer(minLength: 0)
-                    inputCard.padding(.horizontal, 16)
-                    Spacer(minLength: 0)
                 }
-                .padding(.vertical, 20)
                 .transition(.opacity)
             }
         }

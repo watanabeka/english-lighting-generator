@@ -237,16 +237,21 @@ private struct QuizContentView: View {
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
 
             } else {
-                // ── Input (vertically centred) ────────────────────────────
-                VStack(spacing: 14) {
-                    if !viewModel.errorMessage.isEmpty {
-                        errorBanner.padding(.horizontal, 16)
+                // ── Input (vertically centred, scrollable) ────────────────
+                GeometryReader { geo in
+                    ScrollView {
+                        VStack(spacing: 14) {
+                            if !viewModel.errorMessage.isEmpty {
+                                errorBanner.padding(.horizontal, 16)
+                            }
+                            Spacer(minLength: 0)
+                            settingsCard.padding(.horizontal, 16)
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.vertical, 20)
+                        .frame(maxWidth: .infinity, minHeight: geo.size.height)
                     }
-                    Spacer(minLength: 0)
-                    settingsCard.padding(.horizontal, 16)
-                    Spacer(minLength: 0)
                 }
-                .padding(.vertical, 20)
                 .transition(.opacity)
             }
         }
