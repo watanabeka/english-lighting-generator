@@ -83,5 +83,6 @@
   "review.title": "هل يعجبك التطبيق؟",
   "review.body": "إذا أعجبك التطبيق، نرجو أن تترك تقييمًا على App Store.",
   "review.writeReview": "كتابة تقييم",
-  "review.notNow": "ليس الآن"
+  "review.notNow": "ليس الآن",
+  "dailyLimit.remaining": "متبقٍ اليوم: %d"
 }

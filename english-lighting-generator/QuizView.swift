@@ -207,6 +207,15 @@ private struct QuizContentView: View {
     @AppStorage("hasRespondedToReview") private var hasRespondedToReview: Bool = false
 
     private var store: StoreManager { StoreManager.shared }
+    @Query private var allUsageRecords: [UsageRecord]
+
+    private var remainingGenerations: Int {
+        let today = String.todayDateKey
+        let used = allUsageRecords
+            .filter { $0.date == today }
+            .reduce(0) { $0 + $1.aiSentenceCount + $1.aiQuizCount }
+        return max(0, dailyFreeLimit - used)
+    }
 
     private func generateWithLimitCheck() {
         if !store.isPremium && todayTotalUsage(modelContext: modelContext) >= dailyFreeLimit {
@@ -336,6 +345,12 @@ private struct QuizContentView: View {
             }
 
             generateButton
+            if !store.isPremium {
+                Text(String(format: L["dailyLimit.remaining"], remainingGenerations))
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.cardSub)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
         }
         .padding(22)
         .background(

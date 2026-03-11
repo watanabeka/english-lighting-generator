@@ -83,5 +83,6 @@
   "review.title": "¿Te gusta la app?",
   "review.body": "Si te gusta, nos encantaría que nos dejaras una reseña en la App Store.",
   "review.writeReview": "Escribir reseña",
-  "review.notNow": "Ahora no"
+  "review.notNow": "Ahora no",
+  "dailyLimit.remaining": "Generaciones restantes hoy: %d"
 }

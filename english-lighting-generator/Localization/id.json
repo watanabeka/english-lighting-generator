@@ -83,5 +83,6 @@
   "review.title": "Suka aplikasinya?",
   "review.body": "Jika Anda menyukai aplikasi ini, kami akan sangat senang jika Anda memberikan ulasan di App Store.",
   "review.writeReview": "Beri ulasan",
-  "review.notNow": "Nanti saja"
+  "review.notNow": "Nanti saja",
+  "dailyLimit.remaining": "Sisa generasi hari ini: %d"
 }

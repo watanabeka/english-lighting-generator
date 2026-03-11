@@ -83,5 +83,6 @@
   "review.title": "Gostando do app?",
   "review.body": "Se estiver gostando, adoraríamos receber sua avaliação na App Store.",
   "review.writeReview": "Avaliar",
-  "review.notNow": "Agora não"
+  "review.notNow": "Agora não",
+  "dailyLimit.remaining": "Gerações restantes hoje: %d"
 }

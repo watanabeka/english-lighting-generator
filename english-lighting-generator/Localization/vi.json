@@ -83,5 +83,6 @@
   "review.title": "Bạn thích ứng dụng?",
   "review.body": "Nếu bạn thích ứng dụng, hãy để lại đánh giá trên App Store nhé.",
   "review.writeReview": "Đánh giá",
-  "review.notNow": "Để sau"
+  "review.notNow": "Để sau",
+  "dailyLimit.remaining": "Lượt tạo còn lại hôm nay: %d"
 }
