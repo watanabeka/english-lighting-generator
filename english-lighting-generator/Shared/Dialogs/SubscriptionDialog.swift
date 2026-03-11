@@ -57,12 +57,10 @@ struct SubscriptionDialog: View {
                     .padding(.horizontal, 24)
                     .padding(.vertical, 20)
 
-                if let product = store.product {
-                    Text(product.displayPrice + " / " + L["subscription.period"])
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(Color.cardText)
-                        .padding(.bottom, 16)
-                }
+                Text(L["subscription.priceNote"])
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(Color(red: 0.90, green: 0.55, blue: 0.08))
+                    .padding(.bottom, 16)
 
                 Button(action: { Task { await store.purchase() } }) {
                     Text(L["subscription.subscribe"])

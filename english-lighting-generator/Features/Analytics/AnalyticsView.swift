@@ -39,14 +39,14 @@ struct AnalyticsView: View {
             HStack {
                 Label(L["analytics.historyTitle"], systemImage: "chart.bar.fill")
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Color.btnBlue)
+                    .foregroundStyle(.white)
                 Spacer()
             }
             .padding(.horizontal, 20)
             .padding(.top, 18)
             .padding(.bottom, 12)
 
-            Divider().padding(.horizontal, 14)
+            Color.white.opacity(0.25).frame(height: 0.5).padding(.horizontal, 14)
 
             statRow(
                 title: L["analytics.today"],
@@ -75,9 +75,13 @@ struct AnalyticsView: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 22)
-                .fill(Color.white.opacity(0.82))
-                .shadow(color: Color(red: 0.30, green: 0.50, blue: 0.75).opacity(0.18), radius: 18, x: 0, y: 6)
-                .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
+                .fill(LinearGradient(
+                    colors: [.btnBlue, .btnBlueDark],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ))
+                .shadow(color: Color.btnBlue.opacity(0.45), radius: 18, x: 0, y: 6)
+                .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
         )
     }
 
@@ -85,28 +89,30 @@ struct AnalyticsView: View {
         VStack(spacing: 0) {
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(title).font(.subheadline).foregroundStyle(Color.cardSub)
+                    Text(title).font(.subheadline).foregroundStyle(.white.opacity(0.70))
                     Text(String(format: L["analytics.usageFormat"], count))
-                        .font(.system(size: 22, weight: .bold)).foregroundStyle(Color.cardText)
+                        .font(.system(size: 22, weight: .bold)).foregroundStyle(.white)
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 3) {
                     Text(comparison)
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(comparisonColor(comparison))
-                    Text(compLabel).font(.caption2).foregroundStyle(Color.cardSub)
+                    Text(compLabel).font(.caption2).foregroundStyle(.white.opacity(0.60))
                 }
             }
             .padding(.horizontal, 20).padding(.vertical, 14)
 
-            if !isLast { Divider().padding(.horizontal, 14) }
+            if !isLast {
+                Color.white.opacity(0.25).frame(height: 0.5).padding(.horizontal, 14)
+            }
         }
     }
 
     private func comparisonColor(_ text: String) -> Color {
-        if text.hasPrefix("+") && text != "+∞%" { return Color(red: 0.12, green: 0.62, blue: 0.38) }
-        if text.hasPrefix("-") { return Color(red: 0.82, green: 0.22, blue: 0.22) }
-        return Color.cardSub
+        if text.hasPrefix("+") && text != "+∞%" { return Color(red: 0.55, green: 1.0, blue: 0.75) }
+        if text.hasPrefix("-") { return Color(red: 1.0, green: 0.65, blue: 0.65) }
+        return .white.opacity(0.55)
     }
 
     // MARK: - History Section
