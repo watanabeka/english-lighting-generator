@@ -6,6 +6,7 @@
 //  Centralises translation and error-handling logic used by multiple ViewModels.
 //
 
+import Foundation
 import FoundationModels
 
 // MARK: - Translation
