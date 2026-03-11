@@ -2,7 +2,7 @@
   "app.name": "AI英作文",
   "unavailable.title": "利用不可",
   "unavailable.osRequired": "macOS 26.0 以降が必要です",
-  "unavailable.aiUnavailable": "Apple Intelligence が利用できません",
+  "unavailable.aiUnavailable": "お使いの端末ではApple Intelligenceが使えません。\niPhone15Pro以降の端末が必要です。",
   "input.wordLabel": "ワード",
   "input.wordPlaceholder": "technology, would like",
   "input.sentenceLengthLabel": "文章量",

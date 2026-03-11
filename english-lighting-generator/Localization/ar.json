@@ -2,7 +2,7 @@
   "app.name": "AI إنجليزي",
   "unavailable.title": "غير متاح",
   "unavailable.osRequired": "يتطلب macOS 26.0 أو أحدث",
-  "unavailable.aiUnavailable": "Apple Intelligence غير متاح",
+  "unavailable.aiUnavailable": "جهازك لا يدعم Apple Intelligence.\nيتطلب iPhone 15 Pro أو أحدث.",
   "input.wordLabel": "كلمة",
   "input.wordPlaceholder": "technology, would like",
   "input.sentenceLengthLabel": "الطول",

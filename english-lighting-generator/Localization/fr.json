@@ -2,7 +2,7 @@
   "app.name": "AI Anglais",
   "unavailable.title": "Non disponible",
   "unavailable.osRequired": "Requiert macOS 26.0 ou ultérieur",
-  "unavailable.aiUnavailable": "Apple Intelligence non disponible",
+  "unavailable.aiUnavailable": "Votre appareil ne prend pas en charge Apple Intelligence.\nIl faut un iPhone 15 Pro ou plus récent.",
   "input.wordLabel": "Mot",
   "input.wordPlaceholder": "technology, would like",
   "input.sentenceLengthLabel": "Longueur",

@@ -5,6 +5,7 @@
 //  Created by 渡辺 海星 on 2026/02/24.
 //
 
+import SwiftData
 import SwiftUI
 
 struct SettingsView: View {
@@ -12,6 +13,18 @@ struct SettingsView: View {
     @Binding var showDisclaimer: Bool
     @State private var showSubscriptionDialog = false
     private var store: StoreManager { StoreManager.shared }
+
+    #if DEBUG
+    @Environment(\.modelContext) private var modelContext
+    @Query private var allUsageRecords: [UsageRecord]
+
+    private var todayUsageCount: Int {
+        let today = String.todayDateKey
+        return allUsageRecords
+            .filter { $0.date == today }
+            .reduce(0) { $0 + $1.aiSentenceCount + $1.aiQuizCount }
+    }
+    #endif
 
     private var appVersion: String {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
@@ -22,6 +35,35 @@ struct SettingsView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
+
+                #if DEBUG
+                // ── DEBUG: 生成テストパネル ──────────────────────────────
+                settingsCard {
+                    HStack(spacing: 12) {
+                        Image(systemName: "hammer.fill")
+                            .font(.system(size: 14))
+                            .foregroundStyle(.orange)
+                        Text("生成回数：\(todayUsageCount)")
+                            .font(.body)
+                            .foregroundStyle(Color.cardText)
+                        Spacer()
+                        Button("生成") {
+                            let current = todayTotalUsage(modelContext: modelContext)
+                            if !store.isPremium && current >= dailyFreeLimit {
+                                showSubscriptionDialog = true
+                                return
+                            }
+                            saveWordHistory("word", modelContext: modelContext)
+                            recordUsage(sentence: true, modelContext: modelContext)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.orange)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 14)
+                }
+                // ────────────────────────────────────────────────────────
+                #endif
 
                 // Disclaimer card
                 settingsCard {

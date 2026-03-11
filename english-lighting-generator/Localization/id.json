@@ -2,7 +2,7 @@
   "app.name": "AI Inggris",
   "unavailable.title": "Tidak Tersedia",
   "unavailable.osRequired": "Perlu macOS 26.0 atau lebih baru",
-  "unavailable.aiUnavailable": "Apple Intelligence tidak tersedia",
+  "unavailable.aiUnavailable": "Perangkat Anda tidak mendukung Apple Intelligence.\nDiperlukan iPhone 15 Pro atau lebih baru.",
   "input.wordLabel": "Kata",
   "input.wordPlaceholder": "technology, would like",
   "input.sentenceLengthLabel": "Panjang",
