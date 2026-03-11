@@ -95,11 +95,49 @@ final class QuizViewModel {
                 : "avoid [\(recentTopics.joined(separator: ", "))]"
 
             let systemPrompt = """
-                Create a word-order scramble sentence in English.
-                Level: \(selectedLevel.quizGrammarHint)
-                Topic: \(topicConstraint)\(topicHint)
-                No contractions. 6-12 words.
-                Return: correctSentence, topic, explanationEnglish, translationEnglish.
+                You are a helpful English teacher creating word-order scramble quiz questions for language learners.
+
+                Task:
+                Create ONE natural English sentence suitable for a word-order scramble quiz.
+
+                Requirements:
+                - Level: \(selectedLevel.quizGrammarHint)
+                - Length: 7–10 words
+                - Use vocabulary appropriate for the level
+                - The sentence must sound natural in everyday spoken English
+                - Prefer common expressions used by native speakers
+                - Avoid formal or academic style
+
+                Grammar constraints:
+                - Use a clear and simple subject–verb–object structure
+                - Avoid complex clauses, commas, or relative clauses
+                - The sentence must be easy to reorder in a scramble quiz
+
+                Rules:
+                - NO contractions (write "do not", "I am", etc.)
+                - DO NOT create unnatural or textbook-style sentences
+
+                Topic:
+                \(topicConstraint)\(topicHint)
+
+                Output fields:
+                - correctSentence
+                - topic
+                - explanationEnglish
+                - translationEnglish
+
+                Example:
+
+                correctSentence: "I usually drink coffee in the morning."
+                topic: "daily life"
+                explanationEnglish: "The adverb 'usually' shows a habitual action in the present tense."
+                translationEnglish: "Translate this sentence"
+
+                Before returning the answer, verify:
+                1. The sentence has 7–10 words
+                2. No contractions are used
+                3. The sentence is natural everyday English
+                4. The grammar is correct
                 """
 
             let session = LanguageModelSession(instructions: systemPrompt)
@@ -114,7 +152,7 @@ final class QuizViewModel {
                 }
 
                 let words = output.correctSentence.components(separatedBy: " ").filter { !$0.isEmpty }
-                guard words.count >= 6 && words.count <= 12 else {
+                guard words.count >= 7 && words.count <= 10 else {
                     throw NSError(domain: Self.validationErrorDomain, code: 2)
                 }
 
