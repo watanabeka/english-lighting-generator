@@ -15,6 +15,10 @@ struct SubscriptionDialog: View {
     @Environment(LocalizationManager.self) private var L
     private var store = StoreManager.shared
 
+    init(isPresented: Binding<Bool>) {
+        self._isPresented = isPresented
+    }
+
     var body: some View {
         ZStack {
             Color.black.opacity(0.45)
@@ -112,6 +116,10 @@ struct SubscriptionDialog: View {
 struct ReviewPromptDialog: View {
     @Binding var isPresented: Bool
     @Environment(LocalizationManager.self) private var L
+
+    init(isPresented: Binding<Bool>) {
+        self._isPresented = isPresented
+    }
 
     var body: some View {
         ZStack {
