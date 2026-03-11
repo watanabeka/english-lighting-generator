@@ -5,6 +5,7 @@
 //  Created on 2026/03/10.
 //
 
+import StoreKit
 import SwiftUI
 
 // MARK: - Subscription Dialog (shown when daily limit reached)
