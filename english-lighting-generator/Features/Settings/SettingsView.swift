@@ -2,7 +2,8 @@
 //  SettingsView.swift
 //  english-lighting-generator
 //
-//  Created by 渡辺 海星 on 2026/02/24.
+//  App settings: disclaimer, subscription, app version, review, language selection.
+//  DEBUG panel shows today's generation count with a test "Generate" button.
 //
 
 import SwiftData
@@ -10,6 +11,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(LocalizationManager.self) private var L
+    @Environment(\.openURL) private var openURL
     @Binding var showDisclaimer: Bool
     @State private var showSubscriptionDialog = false
     private var store: StoreManager { StoreManager.shared }
@@ -113,7 +115,7 @@ struct SettingsView: View {
 
                 // Review card
                 settingsCard {
-                    Button(action: {}) {
+                    Button(action: { openReviewPage() }) {
                         settingsRow(icon: "star.fill", iconColor: Color(red: 0.99, green: 0.75, blue: 0.18), title: L["settings.reviewApp"]) {
                             Image(systemName: "chevron.right").font(.caption).foregroundStyle(Color.cardSub)
                         }
@@ -167,7 +169,17 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: Card Container
+    // MARK: - Actions
+
+    private func openReviewPage() {
+        #if os(macOS)
+        if let url = URL(string: AppConstants.macAppStoreReviewURL) { openURL(url) }
+        #else
+        if let url = URL(string: AppConstants.appStoreReviewURL) { openURL(url) }
+        #endif
+    }
+
+    // MARK: - Card Container
 
     private func settingsCard<C: View>(@ViewBuilder content: () -> C) -> some View {
         content()
@@ -179,7 +191,7 @@ struct SettingsView: View {
             )
     }
 
-    // MARK: Settings Row
+    // MARK: - Settings Row
 
     private func settingsRow<T: View>(icon: String, iconColor: Color, title: String, @ViewBuilder trailing: () -> T) -> some View {
         HStack(spacing: 14) {
@@ -196,6 +208,8 @@ struct SettingsView: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
     }
+
+    // MARK: - Language Icon
 
     private func languageIcon(for id: String) -> String {
         switch id {
@@ -216,6 +230,8 @@ struct SettingsView: View {
 #Preview {
     ZStack {
         AppBackground()
-        SettingsView(showDisclaimer: .constant(false)).environment(LocalizationManager.shared)
+        SettingsView(showDisclaimer: .constant(false))
+            .environment(LocalizationManager.shared)
     }
+    .modelContainer(for: [UsageRecord.self], inMemory: true)
 }

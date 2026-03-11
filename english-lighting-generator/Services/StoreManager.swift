@@ -2,7 +2,7 @@
 //  StoreManager.swift
 //  english-lighting-generator
 //
-//  Created on 2026/03/10.
+//  Manages StoreKit subscription: product loading, purchase, restore, and status.
 //
 
 import StoreKit
@@ -16,9 +16,8 @@ final class StoreManager {
 
     var isPremium: Bool = false
     var product: Product? = nil
-    var purchaseError: String = ""
 
-    private var updateListenerTask: Task<Void, Never>? = nil
+    private var updateListenerTask: Task<Void, Never>?
 
     private init() {
         updateListenerTask = listenForTransactions()
@@ -37,7 +36,7 @@ final class StoreManager {
             let products = try await Product.products(for: [productID])
             product = products.first
         } catch {
-            print("StoreManager: Failed to load products - \(error)")
+            print("StoreManager: Failed to load products — \(error)")
         }
     }
 
@@ -46,7 +45,7 @@ final class StoreManager {
     @MainActor
     func purchase() async {
         guard let product else {
-            purchaseError = "Product not available"
+            print("StoreManager: Product not available")
             return
         }
         do {
@@ -56,15 +55,13 @@ final class StoreManager {
                 let transaction = try checkVerified(verification)
                 await transaction.finish()
                 await updateSubscriptionStatus()
-            case .userCancelled:
-                break
-            case .pending:
+            case .userCancelled, .pending:
                 break
             @unknown default:
                 break
             }
         } catch {
-            purchaseError = error.localizedDescription
+            print("StoreManager: Purchase failed — \(error)")
         }
     }
 
@@ -106,7 +103,7 @@ final class StoreManager {
     private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
         switch result {
         case .unverified(_, let error): throw error
-        case .verified(let value): return value
+        case .verified(let value):      return value
         }
     }
 }
