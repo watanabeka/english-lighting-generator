@@ -2,181 +2,14 @@
 //  QuizView.swift
 //  english-lighting-generator
 //
-//  Created by 渡辺 海星 on 2026/02/24.
+//  Root view and all sub-views for the word-order quiz feature.
 //
 
-import SwiftUI
 import SwiftData
+import SwiftUI
 import FoundationModels
 
-// MARK: - AI Output Model
-
-@available(macOS 26.0, *)
-@Generable
-struct WordOrderQuizOutput {
-    @Guide(description: "A grammatically correct, natural English sentence for a word-order scramble exercise. Must be 6 to 12 words long. No contractions, no parentheses.")
-    var correctSentence: String
-
-    @Guide(description: "The topic/domain of this sentence in English (e.g., 'workplace', 'travel', 'food', 'technology', 'daily life', 'sports', 'nature', 'relationships').")
-    var topic: String
-
-    @Guide(description: "Brief explanation (1-2 sentences) in English of the key grammar point illustrated by this sentence.")
-    var explanationEnglish: String
-
-    @Guide(description: "Natural translation of the sentence in English.")
-    var translationEnglish: String
-}
-
-@available(macOS 26.0, *)
-@Generable
-struct TranslationOutput {
-    @Guide(description: "The translated sentence in the target language.")
-    var translation: String
-}
-
-// MARK: - Word Token
-
-struct WordToken: Identifiable, Equatable {
-    let id: Int
-    let word: String
-}
-
-// MARK: - Quiz ViewModel
-
-@available(macOS 26.0, *)
-@Observable
-final class QuizViewModel {
-    var word: String = ""
-    var selectedLength: SentenceLength = .normal
-    var selectedLevel: EnglishLevel = .level1
-
-    var quiz: WordOrderQuizOutput? = nil
-    var translation: String = ""
-    var bankTokens: [WordToken] = []
-    var placedTokens: [WordToken] = []
-    var userSentence: String = ""
-    var isChecked: Bool = false
-    var isCorrect: Bool = false
-    var isGenerating: Bool = false
-    var errorMessage: String = ""
-
-    private var recentTopics: [String] = []
-    private let maxRecentTracking = 5
-
-    var allPlaced: Bool { bankTokens.isEmpty && !placedTokens.isEmpty }
-
-    func tapBank(_ token: WordToken) {
-        guard !isChecked else { return }
-        bankTokens.removeAll { $0.id == token.id }
-        placedTokens.append(token)
-    }
-
-    func tapPlaced(_ token: WordToken) {
-        guard !isChecked else { return }
-        placedTokens.removeAll { $0.id == token.id }
-        bankTokens.append(token)
-    }
-
-    func checkAnswer(modelContext: ModelContext) {
-        userSentence = placedTokens.map(\.word).joined(separator: " ")
-        isCorrect = userSentence == quiz?.correctSentence
-        withAnimation(.spring(duration: 0.3)) { isChecked = true }
-        recordUsage(quiz: true, modelContext: modelContext)
-        let wordToSave = word.trimmingCharacters(in: .whitespaces)
-        if !wordToSave.isEmpty { saveWordHistory(wordToSave, modelContext: modelContext) }
-    }
-
-    func reset() {
-        quiz = nil
-        translation = ""
-        bankTokens = []
-        placedTokens = []
-        userSentence = ""
-        isChecked = false
-        isCorrect = false
-        errorMessage = ""
-    }
-
-    func generate() {
-        Task { @MainActor in
-            isGenerating = true
-            errorMessage = ""
-            quiz = nil
-            bankTokens = []
-            placedTokens = []
-            userSentence = ""
-            isChecked = false
-            isCorrect = false
-
-            let nativeLang = LocalizationManager.shared.nativeLanguageName
-            let wordHint = word.trimmingCharacters(in: .whitespaces)
-            let topicHint = wordHint.isEmpty ? "" : "\nTopic hint: incorporate \"\(wordHint)\" if natural."
-
-            let topicConstraint: String
-            if recentTopics.isEmpty {
-                topicConstraint = "any topic"
-            } else {
-                topicConstraint = "avoid [\(recentTopics.joined(separator: ", "))]"
-            }
-
-            let systemPrompt = """
-                Create a word-order scramble sentence in English.
-                Level: \(selectedLevel.quizGrammarHint)
-                Topic: \(topicConstraint)\(topicHint)
-                No contractions. 6-12 words.
-                Return: correctSentence, topic, explanationEnglish, translationEnglish.
-                """
-
-            let session = LanguageModelSession(instructions: systemPrompt)
-            do {
-                let response = try await session.respond(to: "Generate now.", generating: WordOrderQuizOutput.self)
-                let output = response.content
-
-                if !wordHint.isEmpty {
-                    guard output.correctSentence.lowercased().contains(wordHint.lowercased()) else {
-                        throw NSError(domain: "QuizValidation", code: 3, userInfo: [NSLocalizedDescriptionKey: "Input word not found"])
-                    }
-                }
-
-                let words = output.correctSentence.components(separatedBy: " ").filter { !$0.isEmpty }
-                guard words.count >= 6 && words.count <= 12 else {
-                    throw NSError(domain: "QuizValidation", code: 2, userInfo: [NSLocalizedDescriptionKey: "Word count out of range"])
-                }
-
-                var shuffled = words.shuffled()
-                var attempts = 0
-                while shuffled == words && words.count > 1 && attempts < 10 {
-                    shuffled = words.shuffled(); attempts += 1
-                }
-
-                recentTopics.append(output.topic)
-                if recentTopics.count > maxRecentTracking { recentTopics.removeFirst() }
-
-                let tokens = shuffled.enumerated().map { WordToken(id: $0.offset, word: $0.element) }
-
-                let translationSession = LanguageModelSession(instructions: "Translate English to \(nativeLang).")
-                let translationResponse = try await translationSession.respond(to: output.translationEnglish, generating: TranslationOutput.self)
-
-                withAnimation(.spring(duration: 0.4)) {
-                    quiz = output
-                    translation = translationResponse.content.translation
-                    bankTokens = tokens
-                }
-            } catch LanguageModelSession.GenerationError.refusal(let refusal, _) {
-                do {
-                    let content = try await Task.detached { try await refusal.explanation.content }.value
-                    errorMessage = "[Refusal] \(content)"
-                } catch { errorMessage = "[Refusal] \(error.localizedDescription)" }
-            } catch {
-                if (error as NSError).domain == "QuizValidation" { await Task.yield(); generate(); return }
-                errorMessage = error.localizedDescription
-            }
-            isGenerating = false
-        }
-    }
-}
-
-// MARK: - Quiz View (Root)
+// MARK: - Quiz Root View
 
 struct QuizView: View {
     var body: some View {
@@ -201,21 +34,38 @@ private struct QuizContentView: View {
     @Environment(\.modelContext) private var modelContext
 
     @State private var viewModel = QuizViewModel()
+    @State private var showSubscriptionDialog = false
+    @State private var showReviewPrompt = false
+    @AppStorage("quizGenerationCount") private var quizGenerationCount: Int = 0
+    @AppStorage("hasRespondedToReview") private var hasRespondedToReview: Bool = false
+
+    private var store: StoreManager { StoreManager.shared }
+
+    private func generateWithLimitCheck() {
+        if !store.isPremium && todayTotalUsage(modelContext: modelContext) >= dailyFreeLimit {
+            showSubscriptionDialog = true
+            return
+        }
+        quizGenerationCount += 1
+        if quizGenerationCount == 3 && !hasRespondedToReview {
+            showReviewPrompt = true
+        }
+        viewModel.generate()
+    }
 
     var body: some View {
         ZStack {
             if viewModel.isGenerating {
-                // ── Loading ──────────────────────────────────────────────
                 GlowLoadingBar(subtitle: L["button.generating"] + "...")
                     .transition(.opacity)
 
             } else if viewModel.quiz != nil {
-                // ── Quiz active (vertically centred) ─────────────────────
                 GeometryReader { geo in
                     ScrollView {
                         VStack(spacing: 20) {
                             if !viewModel.errorMessage.isEmpty {
-                                errorBanner.padding(.horizontal, 16)
+                                ErrorBannerView(message: viewModel.errorMessage)
+                                    .padding(.horizontal, 16)
                             }
                             Spacer(minLength: 0)
                             WordOrderCard(viewModel: viewModel, modelContext: modelContext)
@@ -237,12 +87,12 @@ private struct QuizContentView: View {
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
 
             } else {
-                // ── Input (vertically centred, scrollable) ────────────────
                 GeometryReader { geo in
                     ScrollView {
                         VStack(spacing: 14) {
                             if !viewModel.errorMessage.isEmpty {
-                                errorBanner.padding(.horizontal, 16)
+                                ErrorBannerView(message: viewModel.errorMessage)
+                                    .padding(.horizontal, 16)
                             }
                             Spacer(minLength: 0)
                             settingsCard.padding(.horizontal, 16)
@@ -259,9 +109,28 @@ private struct QuizContentView: View {
         .animation(.easeInOut(duration: 0.30), value: viewModel.isGenerating)
         .animation(.spring(duration: 0.45), value: viewModel.quiz?.correctSentence)
         .animation(.easeInOut(duration: 0.25), value: viewModel.errorMessage)
+        .overlay {
+            if showSubscriptionDialog {
+                SubscriptionDialog(isPresented: $showSubscriptionDialog)
+                    .environment(L)
+                    .transition(.opacity.combined(with: .scale(scale: 0.94)))
+            }
+        }
+        .overlay {
+            if showReviewPrompt {
+                ReviewPromptDialog(isPresented: $showReviewPrompt)
+                    .environment(L)
+                    .transition(.opacity.combined(with: .scale(scale: 0.94)))
+            }
+        }
+        .animation(.spring(duration: 0.35), value: showSubscriptionDialog)
+        .animation(.spring(duration: 0.35), value: showReviewPrompt)
+        .onChange(of: store.isPremium) { _, isPremium in
+            if isPremium { showSubscriptionDialog = false }
+        }
     }
 
-    // MARK: Settings Card
+    // MARK: - Settings Card
 
     private var settingsCard: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -273,7 +142,7 @@ private struct QuizContentView: View {
                 Text(L["input.wordLabel"])
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Color.cardSub)
-                TextField(L["input.wordPlaceholder"], text: $viewModel.word)
+                TextField(L["quiz.wordHintPlaceholder"], text: $viewModel.word)
                     .font(.system(size: 16))
                     .foregroundStyle(Color.cardText)
                     .padding(.horizontal, 14)
@@ -299,6 +168,7 @@ private struct QuizContentView: View {
             }
 
             generateButton
+            DailyLimitLabel()
         }
         .padding(22)
         .background(
@@ -312,7 +182,7 @@ private struct QuizContentView: View {
     private var isWordEmpty: Bool { viewModel.word.trimmingCharacters(in: .whitespaces).isEmpty }
 
     private var generateButton: some View {
-        Button(action: { viewModel.generate() }) {
+        Button(action: { generateWithLimitCheck() }) {
             HStack(spacing: 8) {
                 Image(systemName: "dice.fill").font(.system(size: 14, weight: .semibold))
                 Text(L["quiz.generateButton"]).font(.system(size: 16, weight: .bold))
@@ -331,19 +201,7 @@ private struct QuizContentView: View {
         .opacity(isWordEmpty ? 0.45 : 1.0)
     }
 
-    // MARK: Error Banner
-
-    private var errorBanner: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "exclamationmark.circle.fill").foregroundStyle(Color(red: 0.85, green: 0.25, blue: 0.25))
-            Text(viewModel.errorMessage).font(.subheadline).foregroundStyle(Color(red: 0.75, green: 0.15, blue: 0.15))
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 16).fill(Color.white.opacity(0.82)).shadow(color: .black.opacity(0.06), radius: 8, y: 3))
-    }
-
-    // MARK: Next / Reset Buttons
+    // MARK: - Next / Reset Buttons
 
     private var nextButtons: some View {
         HStack(spacing: 10) {
@@ -358,7 +216,7 @@ private struct QuizContentView: View {
             }
             .buttonStyle(.plain)
 
-            Button(action: { viewModel.reset(); viewModel.generate() }) {
+            Button(action: { viewModel.reset(); generateWithLimitCheck() }) {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.clockwise").font(.system(size: 13, weight: .semibold))
                     Text(L["button.regenerateQuiz"]).font(.system(size: 15, weight: .bold))
@@ -386,7 +244,6 @@ private struct WordOrderCard: View {
 
     var body: some View {
         VStack(spacing: 14) {
-            // Question card
             if viewModel.quiz != nil {
                 VStack(alignment: .leading, spacing: 12) {
                     Label(L["quiz.questionLabel"], systemImage: "text.word.spacing")
@@ -410,9 +267,7 @@ private struct WordOrderCard: View {
                 )
             }
 
-            // Word bank + answer (hidden after check)
             if !viewModel.isChecked {
-                // Bank
                 VStack(alignment: .leading, spacing: 10) {
                     Text(L["quiz.bankLabel"])
                         .font(.system(size: 12, weight: .bold))
@@ -433,7 +288,6 @@ private struct WordOrderCard: View {
                         .shadow(color: Color(red: 0.30, green: 0.50, blue: 0.75).opacity(0.12), radius: 12, x: 0, y: 4)
                 )
 
-                // Answer area
                 VStack(alignment: .leading, spacing: 10) {
                     Text(L["quiz.answerLabel"])
                         .font(.system(size: 12, weight: .bold))
@@ -451,7 +305,6 @@ private struct WordOrderCard: View {
                                         lineWidth: 1.5
                                     )
                             )
-
                         if viewModel.placedTokens.isEmpty {
                             Text(L["quiz.answerPlaceholder"])
                                 .font(.subheadline)
@@ -477,7 +330,6 @@ private struct WordOrderCard: View {
                         .shadow(color: Color(red: 0.30, green: 0.50, blue: 0.75).opacity(0.12), radius: 12, x: 0, y: 4)
                 )
 
-                // Check button
                 Button(action: { viewModel.checkAnswer(modelContext: modelContext) }) {
                     Text(L["quiz.checkButton"])
                         .font(.system(size: 16, weight: .bold))
@@ -497,10 +349,14 @@ private struct WordOrderCard: View {
                 .disabled(!viewModel.allPlaced)
             }
 
-            // Result
             if viewModel.isChecked, let quiz = viewModel.quiz {
-                QuizResultSection(quiz: quiz, userSentence: viewModel.userSentence, isCorrect: viewModel.isCorrect, translation: viewModel.translation)
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                QuizResultSection(
+                    quiz: quiz,
+                    userSentence: viewModel.userSentence,
+                    isCorrect: viewModel.isCorrect,
+                    translation: viewModel.translation
+                )
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
         }
         .animation(.spring(duration: 0.3), value: viewModel.bankTokens.count)
@@ -518,21 +374,10 @@ private struct QuizResultSection: View {
     let isCorrect: Bool
     let translation: String
     @Environment(LocalizationManager.self) private var L
+    @Environment(\.openURL) private var openURL
 
     private var accent: Color { isCorrect ? Color(red: 0.12, green: 0.68, blue: 0.40) : Color(red: 0.88, green: 0.22, blue: 0.22) }
     private var badgeIcon: String { isCorrect ? "checkmark.circle.fill" : "xmark.circle.fill" }
-
-    private func searchInSafari() {
-        let query = "問題文: \(translation)\n自分の回答: \(userSentence)\n正答: \(quiz.correctSentence)\nこの問題を解説、ポイントを教えてください"
-        if let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-           let url = URL(string: "https://www.google.com/search?q=\(encoded)&udm=50") {
-            #if os(iOS)
-            UIApplication.shared.open(url)
-            #elseif os(macOS)
-            NSWorkspace.shared.open(url)
-            #endif
-        }
-    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -561,7 +406,7 @@ private struct QuizResultSection: View {
             }
             .padding(.horizontal, 20).padding(.vertical, 12)
 
-            Button(action: { searchInSafari() }) {
+            Button(action: { openSearch() }) {
                 HStack(spacing: 6) {
                     Image(systemName: "magnifyingglass").font(.system(size: 13))
                     Text(L["quiz.searchButton"]).font(.subheadline).fontWeight(.medium)
@@ -579,6 +424,13 @@ private struct QuizResultSection: View {
                 .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
         )
     }
+
+    private func openSearch() {
+        let query = String(format: L["quiz.searchQuery"], translation, userSentence, quiz.correctSentence)
+        guard let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: String(format: AppConstants.googleSearchURL, encoded)) else { return }
+        openURL(url)
+    }
 }
 
 // MARK: - Wrap Layout
@@ -588,26 +440,36 @@ private struct WrapLayout: Layout {
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) -> CGSize {
         let maxWidth = proposal.width ?? .infinity
-        var height: CGFloat = 0; var rowWidth: CGFloat = 0; var rowHeight: CGFloat = 0
+        var height: CGFloat = 0
+        var rowWidth: CGFloat = 0
+        var rowHeight: CGFloat = 0
         for subview in subviews {
             let size = subview.sizeThatFits(.unspecified)
             if rowWidth + size.width > maxWidth, rowWidth > 0 {
-                height += rowHeight + spacing; rowWidth = 0; rowHeight = 0
+                height += rowHeight + spacing
+                rowWidth = 0
+                rowHeight = 0
             }
-            rowWidth += size.width + spacing; rowHeight = max(rowHeight, size.height)
+            rowWidth += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
         }
         return CGSize(width: maxWidth, height: height + rowHeight)
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) {
-        var x = bounds.minX; var y = bounds.minY; var rowHeight: CGFloat = 0
+        var x = bounds.minX
+        var y = bounds.minY
+        var rowHeight: CGFloat = 0
         for subview in subviews {
             let size = subview.sizeThatFits(.unspecified)
             if x + size.width > bounds.maxX, x > bounds.minX {
-                x = bounds.minX; y += rowHeight + spacing; rowHeight = 0
+                x = bounds.minX
+                y += rowHeight + spacing
+                rowHeight = 0
             }
             subview.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
-            x += size.width + spacing; rowHeight = max(rowHeight, size.height)
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
         }
     }
 }

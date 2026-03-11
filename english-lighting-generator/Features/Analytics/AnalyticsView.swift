@@ -1,12 +1,12 @@
 //
-//  HistoryView.swift
+//  AnalyticsView.swift
 //  english-lighting-generator
 //
-//  Created by 渡辺 海星 on 2026/02/24.
+//  Displays usage statistics and word-history for the learning analytics tab.
 //
 
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 // MARK: - Analytics View
 
@@ -24,61 +24,64 @@ struct AnalyticsView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                statsCard
-                    .padding(.horizontal, 16)
-
-                historySection
-                    .padding(.horizontal, 16)
+                statsCard.padding(.horizontal, 16)
+                historySection.padding(.horizontal, 16)
             }
             .padding(.vertical, 20)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // MARK: Stats Card
+    // MARK: - Stats Card
 
     private var statsCard: some View {
         VStack(spacing: 0) {
-            // Header
             HStack {
                 Label(L["analytics.historyTitle"], systemImage: "chart.bar.fill")
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Color.btnBlue)
+                    .foregroundStyle(.white)
                 Spacer()
             }
             .padding(.horizontal, 20)
             .padding(.top, 18)
             .padding(.bottom, 12)
 
-            Divider().padding(.horizontal, 14)
+            Color.white.opacity(0.25).frame(height: 0.5).padding(.horizontal, 14)
 
             statRow(
                 title: L["analytics.today"],
                 count: totalUsage(daysAgo: 0, count: 1),
-                comparison: pctChange(current: totalUsage(daysAgo: 0, count: 1), previous: totalUsage(daysAgo: 1, count: 1)),
+                comparison: pctChange(current: totalUsage(daysAgo: 0, count: 1),
+                                      previous: totalUsage(daysAgo: 1, count: 1)),
                 compLabel: L["analytics.vsYesterday"],
                 isLast: false
             )
             statRow(
                 title: L["analytics.week7"],
                 count: totalUsage(daysAgo: 0, count: 7),
-                comparison: pctChange(current: totalUsage(daysAgo: 0, count: 7), previous: totalUsage(daysAgo: 7, count: 7)),
+                comparison: pctChange(current: totalUsage(daysAgo: 0, count: 7),
+                                      previous: totalUsage(daysAgo: 7, count: 7)),
                 compLabel: L["analytics.vsPrevious"],
                 isLast: false
             )
             statRow(
                 title: L["analytics.month28"],
                 count: totalUsage(daysAgo: 0, count: 28),
-                comparison: pctChange(current: totalUsage(daysAgo: 0, count: 28), previous: totalUsage(daysAgo: 28, count: 28)),
+                comparison: pctChange(current: totalUsage(daysAgo: 0, count: 28),
+                                      previous: totalUsage(daysAgo: 28, count: 28)),
                 compLabel: L["analytics.vsPrevious"],
                 isLast: true
             )
         }
         .background(
             RoundedRectangle(cornerRadius: 22)
-                .fill(Color.white.opacity(0.82))
-                .shadow(color: Color(red: 0.30, green: 0.50, blue: 0.75).opacity(0.18), radius: 18, x: 0, y: 6)
-                .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
+                .fill(LinearGradient(
+                    colors: [.btnBlue, .btnBlueDark],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ))
+                .shadow(color: Color.btnBlue.opacity(0.45), radius: 18, x: 0, y: 6)
+                .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
         )
     }
 
@@ -86,31 +89,33 @@ struct AnalyticsView: View {
         VStack(spacing: 0) {
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(title).font(.subheadline).foregroundStyle(Color.cardSub)
+                    Text(title).font(.subheadline).foregroundStyle(.white.opacity(0.70))
                     Text(String(format: L["analytics.usageFormat"], count))
-                        .font(.system(size: 22, weight: .bold)).foregroundStyle(Color.cardText)
+                        .font(.system(size: 22, weight: .bold)).foregroundStyle(.white)
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 3) {
                     Text(comparison)
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(compColor(comparison))
-                    Text(compLabel).font(.caption2).foregroundStyle(Color.cardSub)
+                        .foregroundStyle(comparisonColor(comparison))
+                    Text(compLabel).font(.caption2).foregroundStyle(.white.opacity(0.60))
                 }
             }
             .padding(.horizontal, 20).padding(.vertical, 14)
 
-            if !isLast { Divider().padding(.horizontal, 14) }
+            if !isLast {
+                Color.white.opacity(0.25).frame(height: 0.5).padding(.horizontal, 14)
+            }
         }
     }
 
-    private func compColor(_ text: String) -> Color {
-        if text.hasPrefix("+") && text != "+∞%" { return Color(red: 0.12, green: 0.62, blue: 0.38) }
-        if text.hasPrefix("-") { return Color(red: 0.82, green: 0.22, blue: 0.22) }
-        return Color.cardSub
+    private func comparisonColor(_ text: String) -> Color {
+        if text.hasPrefix("+") && text != "+∞%" { return Color(red: 0.55, green: 1.0, blue: 0.75) }
+        if text.hasPrefix("-") { return Color(red: 1.0, green: 0.65, blue: 0.65) }
+        return .white.opacity(0.55)
     }
 
-    // MARK: History Section
+    // MARK: - History Section
 
     private var historySection: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -144,7 +149,7 @@ struct AnalyticsView: View {
         }
     }
 
-    // MARK: Empty State
+    // MARK: - Empty State
 
     private var emptyState: some View {
         VStack(spacing: 18) {
@@ -165,14 +170,18 @@ struct AnalyticsView: View {
                 }
                 .foregroundStyle(.white)
                 .padding(.horizontal, 24).padding(.vertical, 12)
-                .background(Capsule().fill(LinearGradient(colors: [.btnBlue, .btnBlueDark], startPoint: .topLeading, endPoint: .bottomTrailing)).shadow(color: Color.btnBlue.opacity(0.35), radius: 10, y: 4))
+                .background(
+                    Capsule()
+                        .fill(LinearGradient(colors: [.btnBlue, .btnBlueDark], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .shadow(color: Color.btnBlue.opacity(0.35), radius: 10, y: 4)
+                )
             }
             .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity).padding(.vertical, 20)
     }
 
-    // MARK: Helpers
+    // MARK: - Helpers
 
     private var cutoffDate: String { String.dateKey(daysAgo: daysShown - 1) }
     private var visibleItems: [WordHistoryItem] { allItems.filter { $0.date >= cutoffDate } }
@@ -180,7 +189,8 @@ struct AnalyticsView: View {
 
     private func totalUsage(daysAgo start: Int, count: Int) -> Int {
         let dates = Set((start..<(start + count)).map { String.dateKey(daysAgo: $0) })
-        return usageRecords.filter { dates.contains($0.date) }.reduce(0) { $0 + $1.aiSentenceCount + $1.aiQuizCount }
+        return usageRecords.filter { dates.contains($0.date) }
+            .reduce(0) { $0 + $1.aiSentenceCount + $1.aiQuizCount }
     }
 
     private func pctChange(current: Int, previous: Int) -> String {
@@ -195,8 +205,10 @@ private struct HistoryItemRow: View {
     let item: WordHistoryItem
     let onGenerate: () -> Void
 
-    private static let relFormatter: RelativeDateTimeFormatter = {
-        let f = RelativeDateTimeFormatter(); f.unitsStyle = .abbreviated; return f
+    private static let relativeFormatter: RelativeDateTimeFormatter = {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter
     }()
 
     var body: some View {
@@ -206,7 +218,7 @@ private struct HistoryItemRow: View {
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Color.cardText)
                     .lineLimit(2)
-                Text(Self.relFormatter.localizedString(for: item.timestamp, relativeTo: Date()))
+                Text(Self.relativeFormatter.localizedString(for: item.timestamp, relativeTo: Date()))
                     .font(.caption)
                     .foregroundStyle(Color.cardSub)
             }
@@ -214,7 +226,9 @@ private struct HistoryItemRow: View {
             Button(action: onGenerate) {
                 ZStack {
                     Circle().fill(Color.btnBlue.opacity(0.12)).frame(width: 34, height: 34)
-                    Image(systemName: "arrow.up.right").font(.system(size: 12, weight: .bold)).foregroundStyle(Color.btnBlue)
+                    Image(systemName: "arrow.up.right")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Color.btnBlue)
                 }
             }
             .buttonStyle(.plain)

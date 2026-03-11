@@ -1,5 +1,14 @@
+//
+//  DataModels.swift
+//  english-lighting-generator
+//
+//  SwiftData persistent models and daily-usage helper functions.
+//
+
 import Foundation
 import SwiftData
+
+// MARK: - Persistent Models
 
 @Model
 final class WordHistoryItem {
@@ -27,17 +36,24 @@ final class UsageRecord {
     }
 }
 
+// MARK: - Date Helpers
+
 extension String {
     static var todayDateKey: String { dateKey(daysAgo: 0) }
 
     static func dateKey(daysAgo: Int) -> String {
         let date = Calendar.current.date(byAdding: .day, value: -daysAgo, to: Date()) ?? Date()
-        let f = DateFormatter()
-        f.dateFormat = "yyyy-MM-dd"
-        f.locale = Locale(identifier: "en_US_POSIX")
-        return f.string(from: date)
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter.string(from: date)
     }
 }
+
+// MARK: - Usage Tracking
+
+/// Maximum number of free AI generations per day.
+let dailyFreeLimit = 10
 
 func recordUsage(sentence: Bool = false, quiz: Bool = false, modelContext: ModelContext) {
     let today = String.todayDateKey
@@ -53,6 +69,13 @@ func recordUsage(sentence: Bool = false, quiz: Bool = false, modelContext: Model
         ))
     }
     try? modelContext.save()
+}
+
+func todayTotalUsage(modelContext: ModelContext) -> Int {
+    let today = String.todayDateKey
+    let descriptor = FetchDescriptor<UsageRecord>(predicate: #Predicate { $0.date == today })
+    guard let record = try? modelContext.fetch(descriptor).first else { return 0 }
+    return record.aiSentenceCount + record.aiQuizCount
 }
 
 func saveWordHistory(_ word: String, modelContext: ModelContext) {

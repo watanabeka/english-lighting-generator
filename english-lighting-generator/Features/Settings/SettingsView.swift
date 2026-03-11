@@ -2,14 +2,31 @@
 //  SettingsView.swift
 //  english-lighting-generator
 //
-//  Created by 渡辺 海星 on 2026/02/24.
+//  App settings: disclaimer, subscription, app version, review, language selection.
+//  DEBUG panel shows today's generation count with a test "Generate" button.
 //
 
+import SwiftData
 import SwiftUI
 
 struct SettingsView: View {
     @Environment(LocalizationManager.self) private var L
+    @Environment(\.openURL) private var openURL
     @Binding var showDisclaimer: Bool
+    @State private var showSubscriptionDialog = false
+    private var store: StoreManager { StoreManager.shared }
+
+    #if DEBUG
+    @Environment(\.modelContext) private var modelContext
+    @Query private var allUsageRecords: [UsageRecord]
+
+    private var todayUsageCount: Int {
+        let today = String.todayDateKey
+        return allUsageRecords
+            .filter { $0.date == today }
+            .reduce(0) { $0 + $1.aiSentenceCount + $1.aiQuizCount }
+    }
+    #endif
 
     private var appVersion: String {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
@@ -21,6 +38,35 @@ struct SettingsView: View {
         ScrollView {
             VStack(spacing: 16) {
 
+                #if DEBUG
+                // ── DEBUG: 生成テストパネル ──────────────────────────────
+                settingsCard {
+                    HStack(spacing: 12) {
+                        Image(systemName: "hammer.fill")
+                            .font(.system(size: 14))
+                            .foregroundStyle(.orange)
+                        Text("生成回数：\(todayUsageCount)")
+                            .font(.body)
+                            .foregroundStyle(Color.cardText)
+                        Spacer()
+                        Button("生成") {
+                            let current = todayTotalUsage(modelContext: modelContext)
+                            if !store.isPremium && current >= dailyFreeLimit {
+                                showSubscriptionDialog = true
+                                return
+                            }
+                            saveWordHistory("word", modelContext: modelContext)
+                            recordUsage(sentence: true, modelContext: modelContext)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.orange)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 14)
+                }
+                // ────────────────────────────────────────────────────────
+                #endif
+
                 // Disclaimer card
                 settingsCard {
                     Button(action: { showDisclaimer = true }) {
@@ -29,6 +75,35 @@ struct SettingsView: View {
                         }
                     }
                     .buttonStyle(.plain)
+                }
+
+                // Subscription card
+                settingsCard {
+                    VStack(spacing: 0) {
+                        if store.isPremium {
+                            settingsRow(icon: "crown.fill", iconColor: Color(red: 1.0, green: 0.75, blue: 0.18), title: L["settings.premiumActive"]) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 18))
+                                    .foregroundStyle(Color(red: 0.12, green: 0.68, blue: 0.40))
+                            }
+                        } else {
+                            Button(action: { showSubscriptionDialog = true }) {
+                                settingsRow(icon: "crown.fill", iconColor: Color(red: 1.0, green: 0.75, blue: 0.18), title: L["settings.subscribe"]) {
+                                    Image(systemName: "chevron.right").font(.caption).foregroundStyle(Color.cardSub)
+                                }
+                            }
+                            .buttonStyle(.plain)
+
+                            Divider().padding(.horizontal, 14)
+                        }
+
+                        Button(action: { Task { await store.restore() } }) {
+                            settingsRow(icon: "arrow.clockwise.circle.fill", iconColor: Color.btnBlue, title: L["settings.restore"]) {
+                                Image(systemName: "chevron.right").font(.caption).foregroundStyle(Color.cardSub)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
 
                 // App info card
@@ -40,7 +115,7 @@ struct SettingsView: View {
 
                 // Review card
                 settingsCard {
-                    Button(action: {}) {
+                    Button(action: { openReviewPage() }) {
                         settingsRow(icon: "star.fill", iconColor: Color(red: 0.99, green: 0.75, blue: 0.18), title: L["settings.reviewApp"]) {
                             Image(systemName: "chevron.right").font(.caption).foregroundStyle(Color.cardSub)
                         }
@@ -81,9 +156,30 @@ struct SettingsView: View {
             .padding(.vertical, 20)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay {
+            if showSubscriptionDialog {
+                SubscriptionDialog(isPresented: $showSubscriptionDialog)
+                    .environment(L)
+                    .transition(.opacity.combined(with: .scale(scale: 0.94)))
+            }
+        }
+        .animation(.spring(duration: 0.35), value: showSubscriptionDialog)
+        .onChange(of: store.isPremium) { _, isPremium in
+            if isPremium { showSubscriptionDialog = false }
+        }
     }
 
-    // MARK: Card Container
+    // MARK: - Actions
+
+    private func openReviewPage() {
+        #if os(macOS)
+        if let url = URL(string: AppConstants.macAppStoreReviewURL) { openURL(url) }
+        #else
+        if let url = URL(string: AppConstants.appStoreReviewURL) { openURL(url) }
+        #endif
+    }
+
+    // MARK: - Card Container
 
     private func settingsCard<C: View>(@ViewBuilder content: () -> C) -> some View {
         content()
@@ -95,7 +191,7 @@ struct SettingsView: View {
             )
     }
 
-    // MARK: Settings Row
+    // MARK: - Settings Row
 
     private func settingsRow<T: View>(icon: String, iconColor: Color, title: String, @ViewBuilder trailing: () -> T) -> some View {
         HStack(spacing: 14) {
@@ -112,6 +208,8 @@ struct SettingsView: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
     }
+
+    // MARK: - Language Icon
 
     private func languageIcon(for id: String) -> String {
         switch id {
@@ -132,6 +230,8 @@ struct SettingsView: View {
 #Preview {
     ZStack {
         AppBackground()
-        SettingsView(showDisclaimer: .constant(false)).environment(LocalizationManager.shared)
+        SettingsView(showDisclaimer: .constant(false))
+            .environment(LocalizationManager.shared)
     }
+    .modelContainer(for: [UsageRecord.self], inMemory: true)
 }

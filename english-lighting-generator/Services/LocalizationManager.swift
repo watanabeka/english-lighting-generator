@@ -2,7 +2,8 @@
 //  LocalizationManager.swift
 //  english-lighting-generator
 //
-//  Created by 渡辺 海星 on 2026/02/24.
+//  Loads JSON-based localization strings and exposes them via subscript.
+//  Supports 7 languages; falls back to Japanese if no match is found.
 //
 
 import Foundation
@@ -87,7 +88,10 @@ final class LocalizationManager {
     }
 }
 
+// MARK: - Native Language Name (for AI prompts)
+
 extension LocalizationManager {
+    /// Returns the English name of the current UI language, used in AI translation prompts.
     var nativeLanguageName: String {
         switch currentLanguage.id {
         case "pt-BR":  return "Brazilian Portuguese"
