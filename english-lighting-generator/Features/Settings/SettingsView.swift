@@ -8,10 +8,12 @@
 
 import SwiftData
 import SwiftUI
+import StoreKit
 
 struct SettingsView: View {
     @Environment(LocalizationManager.self) private var L
     @Environment(\.openURL) private var openURL
+    @Environment(\.requestReview) private var requestReview
     @Binding var showDisclaimer: Bool
     @State private var showSubscriptionDialog = false
     private var store: StoreManager { StoreManager.shared }
@@ -115,7 +117,7 @@ struct SettingsView: View {
 
                 // Review card
                 settingsCard {
-                    Button(action: { openReviewPage() }) {
+                    Button(action: { requestReview() }) {
                         settingsRow(icon: "star.fill", iconColor: Color(red: 0.99, green: 0.75, blue: 0.18), title: L["settings.reviewApp"]) {
                             Image(systemName: "chevron.right").font(.caption).foregroundStyle(Color.cardSub)
                         }
@@ -170,14 +172,6 @@ struct SettingsView: View {
     }
 
     // MARK: - Actions
-
-    private func openReviewPage() {
-        #if os(macOS)
-        if let url = URL(string: AppConstants.macAppStoreReviewURL) { openURL(url) }
-        #else
-        if let url = URL(string: AppConstants.appStoreReviewURL) { openURL(url) }
-        #endif
-    }
 
     // MARK: - Card Container
 
